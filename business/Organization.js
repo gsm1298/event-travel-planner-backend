@@ -4,7 +4,11 @@
 export class Organization {
     /**
      * @constructor
-     * @param tbd
+     * @param {Integer} id
+     * @param {String} name
      */
-    constructor(){}
+    constructor(id = null, name = null){
+        this.id = id;
+        this.name = name;
+    }
 }
