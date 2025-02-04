@@ -41,7 +41,7 @@ export class DB {
                         user.profile_picture, user.org_id, organization.name AS 'org_name',
                         user.known_traveler_number, user.department, user.role_id, role.name AS 'role_name',
                         user.2fa_enabled, user.last_login, user.created, user.last_edited
-                    FROM User
+                    FROM user
                         LEFT JOIN organization ON user.org_id = organization.org_id
                         LEFT JOIN role ON user.role_id = role.role_id
                     WHERE user.email = ?`;
