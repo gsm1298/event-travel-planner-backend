@@ -2,6 +2,7 @@ import mysql from 'mysql2';
 import dotenv from 'dotenv';
 import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
+import { Event } from '../business/Event.js';
 
 dotenv.config();
 
@@ -27,6 +28,138 @@ export class DB {
         this.con.end();
     }
 
+    // ALL EVENT METHODS
+
+    /**
+     * Create a new event in the database
+     * @param {Event} event
+     * @returns {Promise<Integer>} The ID of the inserted event
+     */
+    createEvent(event) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                INSERT INTO events (name, createdBy, financeMan, startDate, endDate, org, inviteLink, description, pictureLink, maxBudget, currentBudget)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            const params = [event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget];
+
+            this.con.query(query, params, (err, result) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    resolve(result.insertId);
+                }
+            });
+        });
+    }
+
+    /**
+     * Read an event from the database by ID
+     * @param {Integer} eventId
+     * @returns {Promise<Event|null>} The event object or null if not found
+     */
+    readEvent(eventId) {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM events WHERE id = ?`;
+            
+            this.con.query(query, [eventId], (err, rows) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    if (rows.length > 0) {
+                        const row = rows[0];
+                        resolve(new Event(row.id, row.name, row.createdBy, row.financeMan, row.startDate, row.endDate, row.org, row.inviteLink, row.description, row.pictureLink, row.maxBudget, row.currentBudget));
+                    } else {
+                        resolve(null);
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Update an existing event in the database
+     * @param {Event} event
+     * @returns {Promise<Boolean>} True if the update was successful
+     */
+    updateEvent(event) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE events
+                SET name = ?, createdBy = ?, financeMan = ?, startDate = ?, endDate = ?, org = ?, inviteLink = ?, description = ?, pictureLink = ?, maxBudget = ?, currentBudget = ?
+                WHERE id = ?`;
+            const params = [event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.id];
+
+            this.con.query(query, params, (err, result) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    resolve(result.affectedRows > 0);
+                }
+            });
+        });
+    }
+
+    /**
+     * Delete an event from the database
+     * @param {Integer} eventId
+     * @returns {Promise<Boolean>} True if deletion was successful
+     */
+    deleteEvent(eventId) {
+        return new Promise((resolve, reject) => {
+            const query = `DELETE FROM events WHERE id = ?`;
+            
+            this.con.query(query, [eventId], (err, result) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    resolve(result.affectedRows > 0);
+                }
+            });
+        });
+    }
+
+    /**
+     * Get all events from the database
+     * @returns {Promise<Event[]>} Array of Event objects
+     */
+    getAllEvents() {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM events`;
+
+            this.con.query(query, (err, rows) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    // Map the database rows to Event objects
+                    const events = rows.map(row => new Event(
+                        row.id,
+                        row.name,
+                        row.createdBy,
+                        row.financeMan,
+                        row.startDate,
+                        row.endDate,
+                        row.org,
+                        row.inviteLink,
+                        row.description,
+                        row.pictureLink,
+                        row.maxBudget,
+                        row.currentBudget
+                    ));
+                    resolve(events);
+                }
+            });
+        });
+    }
+
+    
+
+    // ALL USER METHODS BELOW
+    
     /**
      * Gets a user based on a given email.
      * @param {String} email
