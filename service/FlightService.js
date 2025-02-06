@@ -16,8 +16,6 @@ export class FlightService {
      */
     constructor(app) {
         app.post('/flights/search', this.search);
-
-        app.post('/flights/book', this.book);
     }
 
     /**@type {express.RequestHandler} */
@@ -41,7 +39,7 @@ export class FlightService {
             ],
             passengers: [
                 {
-                    type: adult
+                    type: "adult"
                 }
             ],
             cabin_class: "economy"
@@ -66,5 +64,6 @@ export class FlightService {
         });
     
         res.status(200).send(JSON.stringify(data));
+
     }
 }
