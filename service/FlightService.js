@@ -2,8 +2,10 @@ import express from 'express';
 import dotenv from 'dotenv';
 import { Duffel } from '@duffel/api';
 
+dotenv.config();
+
 const duffel = new Duffel({
-    token: "duffel_test_8tT22MWUPFg1afcar-AwW2SpJMNJTRj4QUP27-cnKYm"
+    token: process.env.duffelToken
 })
 
 export class FlightService {
@@ -51,7 +53,7 @@ export class FlightService {
         offers.data.offers.forEach((o) => {
             data.push({
                 offer_id: o.id,
-                passenger_ids: [], 
+                passenger_ids: o.passengers.map(p => p.id),
                 airline: o.owner.name,
                 price: o.total_amount,
                 terminal: o.slices[0].segments[0].origin_terminal,
