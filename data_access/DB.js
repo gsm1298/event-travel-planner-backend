@@ -38,7 +38,7 @@ export class DB {
     createEvent(event) {
         return new Promise((resolve, reject) => {
             const query = `
-                INSERT INTO events (name, createdBy, financeMan, startDate, endDate, org, inviteLink, description, pictureLink, maxBudget, currentBudget)
+                INSERT INTO event (name, created_by, finance_man, start_date, end_date, org_id, invite_link, description, picture_link, max_budget, current_budget)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
             const params = [event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget];
 
@@ -60,7 +60,7 @@ export class DB {
      */
     readEvent(eventId) {
         return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM events WHERE id = ?`;
+            const query = `SELECT * FROM event WHERE event_id = ?`;
             
             this.con.query(query, [eventId], (err, rows) => {
                 if (err) {
@@ -86,10 +86,10 @@ export class DB {
     updateEvent(event) {
         return new Promise((resolve, reject) => {
             const query = `
-                UPDATE events
-                SET name = ?, createdBy = ?, financeMan = ?, startDate = ?, endDate = ?, org = ?, inviteLink = ?, description = ?, pictureLink = ?, maxBudget = ?, currentBudget = ?
-                WHERE id = ?`;
-            const params = [event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.id];
+                UPDATE event
+                SET name = ?, created_by = ?, finance_man = ?, start_date = ?, end_date = ?, org_id = ?, invite_link = ?, description = ?, picture_link = ?, max_budget = ?, current_budget = ?
+                WHERE event_id = ?`;
+            const params = [event.name, event.created_by, event.finance_man, event.start_date, event.end_date, event.org_id, event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget, event.event_id];
 
             this.con.query(query, params, (err, result) => {
                 if (err) {
@@ -109,7 +109,7 @@ export class DB {
      */
     deleteEvent(eventId) {
         return new Promise((resolve, reject) => {
-            const query = `DELETE FROM events WHERE id = ?`;
+            const query = `DELETE FROM event WHERE event_id = ?`;
             
             this.con.query(query, [eventId], (err, result) => {
                 if (err) {
@@ -128,7 +128,7 @@ export class DB {
      */
     getAllEvents() {
         return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM events`;
+            const query = `SELECT * FROM event`;
 
             this.con.query(query, (err, rows) => {
                 if (err) {
@@ -137,19 +137,20 @@ export class DB {
                 } else {
                     // Map the database rows to Event objects
                     const events = rows.map(row => new Event(
-                        row.id,
+                        row.event_id,
                         row.name,
-                        row.createdBy,
-                        row.financeMan,
-                        row.startDate,
-                        row.endDate,
-                        row.org,
-                        row.inviteLink,
+                        row.created_by,
+                        row.finance_man,
+                        row.start_date,
+                        row.end_date,
+                        row.org_id,
+                        row.invite_link,
                         row.description,
-                        row.pictureLink,
-                        row.maxBudget,
-                        row.currentBudget
+                        row.picture_link,
+                        row.max_budget,
+                        row.current_budget
                     ));
+                    
                     resolve(events);
                 }
             });
