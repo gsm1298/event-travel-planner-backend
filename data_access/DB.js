@@ -69,7 +69,18 @@ export class DB {
                 } else {
                     if (rows.length > 0) {
                         const row = rows[0];
-                        resolve(new Event(row.id, row.name, row.createdBy, row.financeMan, row.startDate, row.endDate, row.org, row.inviteLink, row.description, row.pictureLink, row.maxBudget, row.currentBudget));
+                        resolve(new Event(row.event_id,
+                            row.name,
+                            row.created_by,
+                            row.finance_man,
+                            row.start_date,
+                            row.end_date,
+                            row.org_id,
+                            row.invite_link,
+                            row.description,
+                            row.picture_link,
+                            row.max_budget,
+                            row.current_budget));
                     } else {
                         resolve(null);
                     }
