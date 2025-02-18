@@ -1,5 +1,5 @@
 import { Organization } from '../business/Organization.js';
-import { DB } from '../data_access/DB.js';
+import { UserDB } from '../data_access/UserDB.js';
 import bcrypt from 'bcrypt';
 /**
  * @Class User
@@ -34,7 +34,7 @@ export class User {
      * @returns {Boolean} loggin success
      */
     async CheckLogin (email, password) {
-        const db = new DB();
+        const db = new UserDB();
 
        const user = await db.GetUserByEmail(email);
 
