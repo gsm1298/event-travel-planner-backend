@@ -8,6 +8,7 @@ import cors from 'cors';
 import { AuthService } from './service/AuthService.js';
 import { EventService } from './service/EventService.js';
 import { FlightService } from './service/FlightService.js';
+import { OrganizationService } from './service/OrganizationService.js';
 
 const server = express();
 
@@ -29,6 +30,7 @@ server.use('/api', apiRouter);
 new AuthService(apiRouter); // Also sets authenticator middleware
 new EventService(apiRouter);
 new FlightService(apiRouter);
+new OrganizationService(apiRouter);
 
 server.listen(3000, () => {
     console.log('Server Starting on http://localhost:3000');
