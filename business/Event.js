@@ -1,4 +1,5 @@
 import { Organization } from '../business/Organization.js';
+import { User } from '../business/User.js';
 import { DB } from '../data_access/DB.js';
 
 /**
@@ -9,8 +10,8 @@ export class Event {
      * @constructor
      * @param {Integer} id
      * @param {String} name
-     * @param {Integer} createdBy
-     * @param {Integer} financeMan
+     * @param {User} createdBy
+     * @param {User} financeMan
      * @param {Date} startDate
      * @param {Date} endDate
      * @param {Organization} org

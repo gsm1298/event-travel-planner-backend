@@ -60,7 +60,20 @@ export class DB {
      */
     readEvent(eventId) {
         return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM event WHERE event_id = ?`;
+            const query = `
+                SELECT
+                    event.event_id, event.name, 
+                    creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
+                    finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
+                    event.start_date, event.end_date,
+                    organization.name AS 'org_name', event.org_id,
+                    event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget,
+                    event.created, event.last_edited
+                FROM event
+                    LEFT JOIN organization ON event.org_id = organization.org_id
+                    LEFT JOIN user AS creator ON event.created_by = creator.user_id
+                    LEFT JOIN user AS finance ON event.finance_man = finance.user_id
+                WHERE event.event_id = ?;`;
             
             this.con.query(query, [eventId], (err, rows) => {
                 if (err) {
@@ -69,13 +82,14 @@ export class DB {
                 } else {
                     if (rows.length > 0) {
                         const row = rows[0];
-                        resolve(new Event(row.event_id,
+                        resolve(new Event(
+                            row.event_id,
                             row.name,
-                            row.created_by,
-                            row.finance_man,
+                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
+                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
                             row.start_date,
                             row.end_date,
-                            row.org_id,
+                            new Organization(row.org_id,row.org_name),
                             row.invite_link,
                             row.description,
                             row.picture_link,
@@ -139,7 +153,19 @@ export class DB {
      */
     getAllEvents() {
         return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM event`;
+            const query = `
+                SELECT
+                    event.event_id, event.name, 
+                    creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
+                    finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
+                    event.start_date, event.end_date,
+                    organization.name AS 'org_name', event.org_id,
+                    event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget,
+                    event.created, event.last_edited
+                FROM event
+                    LEFT JOIN organization ON event.org_id = organization.org_id
+                    LEFT JOIN user AS creator ON event.created_by = creator.user_id
+                    LEFT JOIN user AS finance ON event.finance_man = finance.user_id;`;
 
             this.con.query(query, (err, rows) => {
                 if (err) {
@@ -150,11 +176,11 @@ export class DB {
                     const events = rows.map(row => new Event(
                         row.event_id,
                         row.name,
-                        row.created_by,
-                        row.finance_man,
+                        new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
+                        new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
                         row.start_date,
                         row.end_date,
-                        row.org_id,
+                        new Organization(row.org_id,row.org_name),
                         row.invite_link,
                         row.description,
                         row.picture_link,
