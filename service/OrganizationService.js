@@ -26,7 +26,7 @@ export class OrganizationService {
         const newOrg = new Organization(null, name);
 
         //Save to DB
-        const createdOrg = await newOrg.createOrg(name);
+        const createdOrg = await newOrg.save();
 
         if (createdOrg) {
             res.status(201).json({ message: "Organization created successfully", createdOrg });
@@ -42,7 +42,8 @@ export class OrganizationService {
         const org = await Organization.getOrg(orgId);
         if (org) {
             res.status(200).json(org);
-        } else {
+        } 
+        else {
             res.status(404).json({ message: "Organization not found" });
         }
     }
@@ -66,7 +67,11 @@ export class OrganizationService {
             return;
         }
 
-        const updatedOrg = await org.updateOrg(name);
+        // Update Org Object fields
+        org.name = name;
+
+        // Update Org in DB
+        const updatedOrg = await org.save();
         if (updatedOrg) {
             res.status(200).json({ message: "Organization updated successfully", updatedOrg });
         }

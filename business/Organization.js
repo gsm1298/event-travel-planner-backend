@@ -28,7 +28,8 @@ export class Organization {
         //Check if the Organization exists
         if (org) {
             return org;
-        } else {
+        } 
+        else {
             return null;
         }
     }
@@ -50,36 +51,27 @@ export class Organization {
         else { return null; }
     }
 
-    /**
-     * Creates an Organization. 
+     /**
+     * Updates or Creates an Organization. 
      * If successful return the Organization object, if not null
-     * @param {String} name
      * @returns {Organization | null}
      */
-    async createOrg(name) {
+     async save() {
         const db = new OrganizationDB();
 
-        const newOrg = await db.CreateOrganization(name);
+        if (this.id != null) {
+            const updateOrg = await db.UpdateOrganization(this);
 
-        //Check if Organization was successfully added
-        if (newOrg) { return newOrg; }
-        else { return null; }
-    }
+            //Check if Organization was successfully updated
+            if (updateOrg) { return this; }
+            else { return null; }
+        } 
+        else {
+            const newOrg = await db.CreateOrganization(this);
 
-    /**
-     * Updates an Organization. 
-     * If successful return the updated Organization object, if not null
-     * @param {Integer} orgId
-     * @param {String} name
-     * @returns {Organization | null}
-     */
-    async updateOrg(orgId,name) {
-        const db = new OrganizationDB();
-
-        const updateOrg = await db.UpdateOrganization(orgId,name);
-
-        //Check if Organization was successfully updated
-        if (updateOrg) { return new Organization(orgId, name); }
-        else { return null; }
+            //Check if Organization was successfully added
+            if (newOrg) { Object.assign(this, newOrg); return this; }
+            else { return null; }
+        }
     }
 }

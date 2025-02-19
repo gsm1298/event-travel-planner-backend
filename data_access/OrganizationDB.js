@@ -26,8 +26,10 @@ export class OrganizationDB extends DB {
                         if (rows.length > 0) {
                             var row = rows[0];
                             resolve(new Organization(row.org_id, row.name));
-                        } else { resolve(false); }
-                    } else {
+                        } 
+                        else { resolve(false); }
+                    } 
+                    else {
                         // TODO - error logging
                         console.log(err);
                         resolve(false);
@@ -56,8 +58,10 @@ export class OrganizationDB extends DB {
                     if (!err) {
                         if (rows.length > 0) {
                             resolve( rows.map( row => new Organization(row.org_id, row.name)) );
-                        } else { resolve(false); }
-                    } else {
+                        } 
+                        else { resolve(false); }
+                    } 
+                    else {
                         // TODO - error logging
                         console.log(err);
                         resolve(false);
@@ -73,21 +77,23 @@ export class OrganizationDB extends DB {
 
     /**
      * Creates an Organization
-     * @param {String} name
+     * @param {Organization} org
      * @returns {Organization | null} the created organization object if successful or null if not
      */
-    CreateOrganization(name) {
+    CreateOrganization(org) {
         return new Promise((resolve, reject) => {
             try {
                 var str = `
                     INSERT INTO organization (name)
                         VALUES (?)`;
-                this.con.query(str, [name], (err, result) => {
+                this.con.query(str, [org.name], (err, result) => {
                     if (!err) {
                         if (result.insertId > 0) {
-                            resolve(new Organization(result.insertId, name));
-                        } else { resolve(false); }
-                    } else {
+                            resolve(new Organization(result.insertId, org.name));
+                        } 
+                        else { resolve(false); }
+                    } 
+                    else {
                         // TODO - error logging
                         console.log(err);
                         resolve(false);
@@ -102,24 +108,25 @@ export class OrganizationDB extends DB {
     }
 
     /**
-     * Updates an Organization based on ID
-     * @param {Integer} id
-     * @param {String} name
+     * Updates an Organization
+     * @param {Organization} org
      * @returns {Boolean} True or False based on if the update was successful
      */
-    UpdateOrganization(id,name) {
+    UpdateOrganization(org) {
         return new Promise((resolve, reject) => {
             try {
                 var str = `
                     UPDATE organization SET
                         organization.name = ?
                     WHERE organization.org_id = ?`;
-                this.con.query(str, [id, name], (err, result) => {
+                this.con.query(str, [org.name,org.id], (err, result) => {
                     if (!err) {
                         if (result.affectedRows > 0) {
                             resolve(true);
-                        } else { resolve(false); }
-                    } else {
+                        } 
+                        else { resolve(false); }
+                    } 
+                    else {
                         // TODO - error logging
                         console.log(err);
                         resolve(false);
