@@ -2,8 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { Duffel } from '@duffel/api';
-
-var zipcodes = require('zipcodes');
+import zipcodes from 'zipcodes';
 
 dotenv.config({path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`]});
 
@@ -25,9 +24,8 @@ export class FlightService {
     async search(req, res) {
         var input = req.body;
 
-        // Temp validation, move to Flight business layer once we start implementing DB
-        const valid = (input.origin.length == 3 && input.destination.length == 3);
-        if(!valid) {
+        // Temp validation
+        if(input.destination.length != 3) {
             return res.status(401).json({ error: "Invalid Flight Origin and/or Destination" });
         };
 
