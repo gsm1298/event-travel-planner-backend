@@ -1,10 +1,11 @@
 import mysql from 'mysql2';
 import dotenv from 'dotenv';
+import path from 'path';
 //import { User } from '../business/User.js';
 //import { Organization } from '../business/Organization.js';
 //import { Event } from '../business/Event.js';
 
-dotenv.config();
+dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
 /**
  * @Class DB

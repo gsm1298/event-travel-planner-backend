@@ -1,11 +1,12 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import { Duffel } from '@duffel/api';
 
-dotenv.config();
+dotenv.config({path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`]});
 
 const duffel = new Duffel({
-    token: process.env.duffelToken
+    token: `${process.env.duffelToken}`
 })
 
 export class FlightService {
