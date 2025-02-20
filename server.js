@@ -15,7 +15,7 @@ const server = express();
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
-server.use(cors({ origin: `${process.env.forntend_url}`, credentials: true }));
+server.use(cors({ origin: `${process.env.frontend_url}`, credentials: true }));
 
 // For using req.body.x
 server.use(bodyParser.json());
