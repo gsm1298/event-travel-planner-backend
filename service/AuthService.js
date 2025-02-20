@@ -1,9 +1,10 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import jwt from 'jsonwebtoken';
 import { User } from '../business/User.js';
 
-dotenv.config();
+dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
 // Set jwtSecret from env file
 const jwtSecret = process.env.jwtSecret;

@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -12,9 +13,9 @@ import { OrganizationService } from './service/OrganizationService.js';
 
 const server = express();
 
-server.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
-dotenv.config();
+server.use(cors({ origin: `${process.env.forntend_url}`, credentials: true }));
 
 // For using req.body.x
 server.use(bodyParser.json());
@@ -32,6 +33,6 @@ new EventService(apiRouter);
 new FlightService(apiRouter);
 new OrganizationService(apiRouter);
 
-server.listen(3000, () => {
-    console.log('Server Starting on http://localhost:3000');
+server.listen(process.env.server_port, () => {
+    console.log(`Server Starting on ${process.env.server_url} listening on port ${process.env.server_port}`);
 });
