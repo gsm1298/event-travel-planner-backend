@@ -60,7 +60,8 @@ export class FlightService {
                 destination_airport: o.slices[0].destination.iata_code,
                 departure_date: (o.slices[0].segments[0].departing_at).slice(0, 10),
                 departure_time: (o.slices[0].segments[0].departing_at).slice(11,16),
-                arrival_time: (o.slices[0].segments[0].arriving_at).slice(11,16)
+                arrival_time: (o.slices[0].segments[0].arriving_at).slice(11,16),
+                logo: o.slices[0].segments[0].operating_carrier.logo_symbol_url
             })
         });
     
