@@ -1,5 +1,6 @@
 import { Organization } from '../business/Organization.js';
-import { DB } from '../data_access/DB.js';
+import { User } from '../business/User.js';
+import { EventDB } from '../data_access/EventDB.js';
 
 /**
  * @Class Event
@@ -9,8 +10,8 @@ export class Event {
      * @constructor
      * @param {Integer} id
      * @param {String} name
-     * @param {Integer} createdBy
-     * @param {Integer} financeMan
+     * @param {User} createdBy
+     * @param {User} financeMan
      * @param {Date} startDate
      * @param {Date} endDate
      * @param {Organization} org
@@ -41,7 +42,7 @@ export class Event {
      * @returns {Promise<Integer>} The event ID
      */
     async save() {
-        const db = new DB();
+        const db = new EventDB();
         try {
             if (this.id) {
                 const success = await db.updateEvent(this);
@@ -62,7 +63,7 @@ export class Event {
      * @returns {Promise<Event|null>}
      */
     static async findById(eventId) {
-        const db = new DB();
+        const db = new EventDB();
         try {
             return await db.readEvent(eventId);
         } finally {
@@ -75,7 +76,7 @@ export class Event {
      * @returns {Promise<Event[]>} Array of Event objects
      */
     static async findAll() {
-        const db = new DB();
+        const db = new EventDB();
         try {
             // TODO: Check for permissions before returning all events, as events may be private/inaccessible to user.
             const eventsData = await db.getAllEvents();
@@ -91,7 +92,7 @@ export class Event {
      * @returns {Promise<Boolean>} True if deleted
      */
     static async delete(eventId) {
-        const db = new DB();
+        const db = new EventDB();
         try {
             return await db.deleteEvent(eventId);
         } finally {

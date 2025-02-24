@@ -1,11 +1,13 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
 import { Duffel } from '@duffel/api';
+import zipcodes from 'zipcodes';
 
-dotenv.config();
+dotenv.config({path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`]});
 
 const duffel = new Duffel({
-    token: process.env.duffelToken
+    token: `${process.env.duffelToken}`
 })
 
 export class FlightService {
@@ -22,17 +24,33 @@ export class FlightService {
     async search(req, res) {
         var input = req.body;
 
-        // Temp validation, move to Flight business layer once we start implementing DB
-        const valid = (input.origin.length == 3 && input.destination.length == 3);
-        if(!valid) {
+        // Temp validation
+        if(input.destination.length != 3) {
             return res.status(401).json({ error: "Invalid Flight Origin and/or Destination" });
         };
 
-        // Generate offer search and call duffel api
+        // Lookup client zip and get coords for Duffel call
+        var client_coords = zipcodes.lookup(input.zip);
+
+        // Call to Duffel to return list of closest airport codes
+        var closest_airports = async() => {
+            const response = await fetch(`https://api.duffel.com/places/suggestions?lat=${client_coords.latitude}&lng=${client_coords.longitude}&rad=85000`, {
+                method: 'GET',
+                header: {
+                    'Duffel-version': 'v2',
+                    'Authorization': 'Bearer ' + process.env.duffelToken
+                }
+            })
+
+            const parsed = await response.json();
+            return parsed.data.map(airport => airport.iata_code)
+        }
+
+        // Generate offer search and call Duffel api
         var offers = await duffel.offerRequests.create({
             slices: [
                 {
-                    origin: input.origin,
+                    origin: closest_airports.data[0].iata_city_code, // Defaulting origin to closest city
                     destination: input.destination,
                     departure_date: input.departure_date
                 }
@@ -47,6 +65,8 @@ export class FlightService {
 
         var data = [];
 
+        data.push(closest_airports);
+
         // Parse through api data and store necessary info to data
         offers.data.offers.forEach((o) => {
             data.push({
@@ -59,7 +79,8 @@ export class FlightService {
                 destination_airport: o.slices[0].destination.iata_code,
                 departure_date: (o.slices[0].segments[0].departing_at).slice(0, 10),
                 departure_time: (o.slices[0].segments[0].departing_at).slice(11,16),
-                arrival_time: (o.slices[0].segments[0].arriving_at).slice(11,16)
+                arrival_time: (o.slices[0].segments[0].arriving_at).slice(11,16),
+                logo: o.slices[0].segments[0].operating_carrier.logo_symbol_url
             })
         });
     
