@@ -37,17 +37,17 @@ export class UserDB extends DB {
                             resolve(new User(row.user_id, row.first_name, row.last_name, row.email, row.hashed_password,
                                 new Organization(row.org_id, row.org_name), row.role_name)
                             );
-                        } else { resolve(false); }
+                        } else { resolve(null); }
                     } else {
                         // TODO - error logging
                         console.log(err);
-                        resolve(false);
+                        reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
                 console.log(error);
-                resolve(false);
+                reject(error);
             }
         });
     }
