@@ -35,17 +35,22 @@ export class User {
      */
     async CheckLogin (email, password) {
         const db = new UserDB();
+        try {
+        const user = await db.GetUserByEmail(email);
 
-       const user = await db.GetUserByEmail(email);
+            // Check if user was found
+            if (!user) { return false; }
 
-        // Check if user was found
-        if (!user) { return false; }
+            // Check if password is correct
+            const match = await bcrypt.compare(password, user.hashedPass)
 
-        // Check if password is correct
-        const match = await bcrypt.compare(password, user.hashedPass)
-
-        // If match, set user object to user object returned by db
-        if (match) { Object.assign(this, user); return true; }
-        else { return false; }
+            // If match, set user object to user object returned by db
+            if (match) { Object.assign(this, user); return true; }
+            else { return false; }
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to check login");
+       } finally { db.close(); }
     }
 }

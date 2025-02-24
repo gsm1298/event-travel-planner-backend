@@ -40,6 +40,7 @@ export class Event {
     /**
      * Save event to database (Create if new, Update if exists)
      * @returns {Promise<Integer>} The event ID
+     * @throws {Error}
      */
     async save() {
         const db = new EventDB();
@@ -52,21 +53,28 @@ export class Event {
                 this.id = eventId;  // Assign new ID after insertion
                 return eventId;
             }
-        } finally {
-            db.close();
-        }
+        } catch(error) {
+             // TODO - Log error
+             console.error(error);
+             throw new Error("Error trying to save event");
+        } finally { db.close(); }
     }
 
     /**
      * Find an event by ID
      * @param {Integer} eventId
      * @returns {Promise<Event|null>}
+     * @throws {Error}
      */
     static async findById(eventId) {
         const db = new EventDB();
         try {
             return await db.readEvent(eventId);
-        } finally {
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to find event by id");
+       } finally {
             db.close();
         }
     }
@@ -74,6 +82,7 @@ export class Event {
     /**
      * Find all events
      * @returns {Promise<Event[]>} Array of Event objects
+     * @throws {Error}
      */
     static async findAll() {
         const db = new EventDB();
@@ -81,7 +90,11 @@ export class Event {
             // TODO: Check for permissions before returning all events, as events may be private/inaccessible to user.
             const eventsData = await db.getAllEvents();
             return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
-        } finally {
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to find all events");
+       } finally {
             db.close();
         }
     }
@@ -90,12 +103,17 @@ export class Event {
      * Delete an event by ID
      * @param {Integer} eventId
      * @returns {Promise<Boolean>} True if deleted
+     * @throws {Error}
      */
     static async delete(eventId) {
         const db = new EventDB();
         try {
             return await db.deleteEvent(eventId);
-        } finally {
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to delete event");
+       } finally {
             db.close();
         }
     }
