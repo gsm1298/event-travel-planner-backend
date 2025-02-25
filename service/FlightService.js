@@ -30,13 +30,13 @@ export class FlightService {
         };
 
         // Lookup client zip and get coords for Duffel call
-        var client_coords = zipcodes.lookup(input.zip);
+        var client_coords = zipcodes.lookup(14437);
 
         // Call to Duffel to return list of closest airport codes
         var closest_airports = async() => {
             const response = await fetch(`https://api.duffel.com/places/suggestions?lat=${client_coords.latitude}&lng=${client_coords.longitude}&rad=85000`, {
                 method: 'GET',
-                header: {
+                headers: {
                     'Duffel-version': 'v2',
                     'Authorization': 'Bearer ' + process.env.duffelToken
                 }
@@ -46,11 +46,13 @@ export class FlightService {
             return parsed.data.map(airport => airport.iata_code)
         }
 
+        var airports = await closest_airports();
+
         // Generate offer search and call Duffel api
         var offers = await duffel.offerRequests.create({
             slices: [
                 {
-                    origin: closest_airports.data[0].iata_city_code, // Defaulting origin to closest city
+                    origin: airports[0], // Defaulting origin to closest city
                     destination: input.destination,
                     departure_date: input.departure_date
                 }
@@ -65,7 +67,7 @@ export class FlightService {
 
         var data = [];
 
-        data.push(closest_airports);
+        data.push(airports);
 
         // Parse through api data and store necessary info to data
         offers.data.offers.forEach((o) => {
