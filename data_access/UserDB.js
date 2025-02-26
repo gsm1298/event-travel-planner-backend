@@ -22,7 +22,8 @@ export class UserDB extends DB {
             try {
                 var str = `
                     SELECT 
-                        user.user_id, user.first_name, user.last_name, user.email, user.hashed_password, 
+                        user.user_id, user.first_name, user.last_name, user.email, user.phone_num,
+                        user.gender, user.title, user.hashed_password, 
                         user.profile_picture, user.org_id, organization.name AS 'org_name',
                         user.known_traveler_number, user.department, user.role_id, role.name AS 'role_name',
                         user.2fa_enabled, user.last_login, user.created, user.last_edited
@@ -34,8 +35,13 @@ export class UserDB extends DB {
                     if (!err) {
                         if (rows.length > 0) {
                             var row = rows[0];
-                            resolve(new User(row.user_id, row.first_name, row.last_name, row.email, row.hashed_password,
-                                new Organization(row.org_id, row.org_name), row.role_name)
+                            resolve(
+                                new User(
+                                    row.user_id, row.first_name, row.last_name, row.email, 
+                                    row.phone_num, row.gender, row.title, row.pofile_picture,
+                                    new Organization(row.org_id, row.org_name), 
+                                    row.role_name, row.hashed_password
+                                )
                             );
                         } else { resolve(null); }
                     } else {

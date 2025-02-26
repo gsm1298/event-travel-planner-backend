@@ -12,18 +12,31 @@ export class User {
      * @param {String} firstName
      * @param {String} lastName
      * @param {String} email
-     * @param {String} hashedPass
+     * @param {String} phoneNum
+     * @param {String} gender
+     * @param {String} title
+     * @param {Blob} profilePic
      * @param {Organization} org
      * @param {String} role
+     * @param {String} hashedPass
      */
-    constructor(id = null, firstName = null, lastName = null, email = null, hashedPass = null, org = null, role = null){
+    constructor(
+        id = null, firstName = null, lastName = null, email = null, 
+        phoneNum = null, gender = null, title = null, profilePic = null,
+        org = null, role = null, hashedPass = null
+    ){
+
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-        this.hashedPass = hashedPass;
+        this.phoneNum = phoneNum;
+        this.gender = gender;
+        this.title = title;
+        this.profilePic = profilePic;
         this.org = org;
         this.role = role;
+        this.hashedPass = hashedPass;
     }
 
     /**
