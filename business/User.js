@@ -21,10 +21,10 @@ export class User {
      * @param {String} hashedPass
      */
     constructor(
-        id = null, firstName = null, lastName = null, email = null, 
+        id = null, firstName = null, lastName = null, email = null,
         phoneNum = null, gender = null, title = null, profilePic = null,
         org = null, role = null, hashedPass = null
-    ){
+    ) {
 
         this.id = id;
         this.firstName = firstName;
@@ -46,10 +46,10 @@ export class User {
      * @param {String} password
      * @returns {Boolean} loggin success
      */
-    async CheckLogin (email, password) {
+    async CheckLogin(email, password) {
         const db = new UserDB();
         try {
-        const user = await db.GetUserByEmail(email);
+            const user = await db.GetUserByEmail(email);
 
             // Check if user was found
             if (!user) { return false; }
@@ -60,10 +60,82 @@ export class User {
             // If match, set user object to user object returned by db
             if (match) { Object.assign(this, user); return true; }
             else { return false; }
-        } catch(error) {
+        } catch (error) {
             // TODO - Log error
             console.error(error);
             throw new Error("Error trying to check login");
-       } finally { db.close(); }
+        } finally { db.close(); }
     }
+
+    /**
+     * Gets a user by their id
+     * @param {Intager} id
+     * @returns {User} User object
+     */
+    static async GetUserById(id) {
+        const db = new UserDB();
+        try {
+            const user = await db.GetUserById(id);
+
+            return user;
+        } catch (error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying get user by id");
+        } finally { db.close(); }
+    }
+
+    /**
+     * Gets all users
+     * @returns {User[]} Array of User objects
+     */
+    static async GetUserById(id) {
+        const db = new UserDB();
+        try {
+            const users = await db.GetAllUsers();
+
+            return users;
+        } catch (error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying get all users");
+        } finally { db.close(); }
+    }
+
+    /**
+     * Gets all users in an org
+     * @param {Intager} orgId
+     * @returns {User[]} Array of User objects
+     */
+    static async GetAllUsersFromOrg(orgId) {
+        const db = new UserDB();
+        try {
+            const users = await db.GetAllUsersFromOrg(orgId);
+
+            return users;
+        } catch (error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying get all users from org");
+        } finally { db.close(); }
+    }
+
+    /**
+     * Gets all users in an event
+     * @param {Intager} eventId
+     * @returns {User[]} Array of User objects
+     */
+    static async GetAllAttendeesInEvent(eventId) {
+        const db = new UserDB();
+        try {
+            const users = await db.GetAllAttendeesInEvent(eventId);
+
+            return users;
+        } catch (error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying get all users in event");
+        } finally { db.close(); }
+    }
+
 }
