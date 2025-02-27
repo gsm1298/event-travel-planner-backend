@@ -27,26 +27,36 @@ export class AuthService {
 
     /** @type {express.RequestHandler} */
     async login(req, res) {
-        var input = req.body;
-        // TODO - validate req schema
+        try{ 
+            var input = req.body;
+            // TODO - validate req schema
 
-        var user = new User();
+            var user = new User();
 
-        // Check valid login
-        const valid = await user.CheckLogin(input.email, input.password);
-        if (!valid) {
-            return res.status(401).json({ error: "Incorrect email or password" });
+            // Check valid login
+            const valid = await user.CheckLogin(input.email, input.password);
+            if (!valid) {
+                return res.status(401).json({ error: "Incorrect email or password" });
+            }
+
+            // Set the session
+            var token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: '30m' });
+            res.status(200).cookie("jwt", token).send();
+        } catch (err) {
+            console.error("Error at Login:  ", err);
+            res.status(500).json({ error: "Internal server error" });
         }
-
-        // Set the session
-        var token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: '30m' });
-        res.status(200).cookie("jwt", token).send();
     }
 
     /** @type {express.RequestHandler} */
     logout(_, res) {
+        try{
         // Unset the cookie
         res.status(200).cookie("jwt", "", { maxAge: 1 }).send();
+        } catch (err) {
+            console.error("Error at Logout:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        }   
     }
 
     /** 
@@ -62,18 +72,23 @@ export class AuthService {
    * @type {express.RequestHandler}
    */
     authenticator(req, res, next) {
-        const token = req.cookies.jwt;
-        if (!token) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-
-        jwt.verify(token, jwtSecret, (err, decoded) => {
-            if (err) {
+        try{
+            const token = req.cookies.jwt;
+            if (!token) {
                 return res.status(401).json({ error: "Not authenticated" });
             }
 
-            res.locals.user = decoded;
-            next();
-        });
-    }
+            jwt.verify(token, jwtSecret, (err, decoded) => {
+                if (err) {
+                    return res.status(401).json({ error: "Not authenticated" });
+                }
+
+                res.locals.user = decoded;
+                next();
+            });
+        } catch (err) {
+            console.error("Error at Authenticator:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        }   
+}
 }

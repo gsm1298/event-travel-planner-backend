@@ -25,7 +25,9 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.12.0"
+    "mysql2": "^3.12.0",
+    "zipcode": "^0.1.1",
+    "zipcodes": "^8.0.0"
   },
   "type": "module"
 }
