@@ -89,7 +89,7 @@ export class User {
      * Gets all users
      * @returns {User[]} Array of User objects
      */
-    static async GetUserById(id) {
+    static async GetAllUsers() {
         const db = new UserDB();
         try {
             const users = await db.GetAllUsers();
