@@ -70,7 +70,7 @@ export class UserDB extends DB {
     GetUserById(id) {
         return new Promise((resolve, reject) => {
             try {
-                var str = baseUserQuery + `WHERE user.id = ?`;
+                var str = baseUserQuery + `WHERE user.user_id = ?`;
                 this.con.query(str, [id], function (err, rows, fields) {
                     if (!err) {
                         if (rows.length > 0) {
