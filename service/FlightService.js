@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { Duffel } from '@duffel/api';
 import zipcodes from 'zipcodes';
-import User from '../business/User';
+import User from '../business/User.js';
 
 dotenv.config({path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`]});
 
@@ -156,10 +156,10 @@ export class FlightService {
             })
 
             var data = {
-                offer_id: data.offer_id,
-                total: data.total_amount,
-                expiration: data.payment_status.payment_required_by
-            }
+                offer_id: confirmation.offer_id,
+                total: confirmation.total_amount,
+                expiration: confirmation.payment_status.payment_required_by
+            } 
 
             res.status(200).send(json.stringify(data));
 
@@ -169,6 +169,7 @@ export class FlightService {
         }
     }
 
+    //WIP
     /**@type {express.RequestHandler} */
     async booking(req, res) {
         var input = req.body;
