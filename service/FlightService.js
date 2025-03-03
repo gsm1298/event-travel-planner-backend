@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { Duffel } from '@duffel/api';
 import zipcodes from 'zipcodes';
-import User from '../business/User';
+import { User } from '../business/User.js';
 
 dotenv.config({path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`]});
 
