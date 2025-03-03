@@ -140,7 +140,7 @@ export class FlightService {
         try {
             var confirmation = await duffel.orders.create({
                 selected_offers: [input.orderID],
-                type: "hold",
+                type: "pay_later",
                 passengers: [
                     {   
                         id: input.passID,
@@ -148,14 +148,20 @@ export class FlightService {
                         family_name: user.lastName,
                         title: user.title,
                         gender: user.gender,
-                        phone_number: user.phoneNum,
+                        phone_number: "+1" + user.phoneNum,
                         email: user.email,
                         born_on: user.dob
                     }
                 ]
             })
 
-            res.status(200).send(json.stringify(confirmation));
+            var data = {
+                offer_id: data.offer_id,
+                total: data.total_amount,
+                expiration: data.payment_status.payment_required_by
+            }
+
+            res.status(200).send(json.stringify(data));
 
         } catch (error) {
             console.error("Error at Booking: ", err);
