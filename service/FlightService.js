@@ -20,6 +20,8 @@ export class FlightService {
     constructor(app) {
         app.post('/flights/search', this.search);
 
+        app.post('/flights/hold', this.hold);
+
         app.post('/flights/booking', this.booking);
     }
 
@@ -126,6 +128,38 @@ export class FlightService {
         } catch (err) {
             console.error("Error at Offer Search:  ", err);
             res.status(500).json({ error: "Internal server error" });
+        }
+    }
+
+    /**@type {express.RequestHandler} */
+    async hold(req, res) {
+        var input = req.body;
+
+        var user = User.GetUserById(res.locals.user.id);
+
+        try {
+            var confirmation = await duffel.orders.create({
+                selected_offers: [input.orderID],
+                type: "hold",
+                passengers: [
+                    {   
+                        id: input.passID,
+                        given_name: user.firstName,
+                        family_name: user.lastName,
+                        title: user.title,
+                        gender: user.gender,
+                        phone_number: user.phoneNum,
+                        email: user.email,
+                        born_on: user.dob
+                    }
+                ]
+            })
+
+            res.status(200).send(json.stringify(confirmation));
+
+        } catch (error) {
+            console.error("Error at Booking: ", err);
+            res.status(500).json({ error: "Internal Server Error"});
         }
     }
 
