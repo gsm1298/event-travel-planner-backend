@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { Duffel } from '@duffel/api';
 import zipcodes from 'zipcodes';
-import User from '../business/User.js';
+import User from '../business/User';
 
 dotenv.config({path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`]});
 
@@ -108,7 +108,7 @@ export class FlightService {
 
             data.push({
                     offer_id: o.id,
-                    passenger_ids: o.passengers.map(p => p.id),
+                    passenger_ids: o.passengers[0].id,
                     airline: o.owner.name,
                     price: o.total_amount,
                     duration: (o.slices[0].duration).slice(2), // ##H##M format
