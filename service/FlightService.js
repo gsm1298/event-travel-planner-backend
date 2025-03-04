@@ -55,7 +55,7 @@ export class FlightService {
             var airports = await closest_airports();
         } catch (err) {
             console.error("Error at Flight Search:  ", err);
-            res.status(500).json({ error: "Internal server error" });
+            return res.status(500).json({ error: "Internal server error" });
         }
 
 
@@ -127,7 +127,7 @@ export class FlightService {
             res.status(200).send(JSON.stringify(data));
         } catch (err) {
             console.error("Error at Offer Search:  ", err);
-            res.status(500).json({ error: "Internal server error" });
+            return res.status(500).json({ error: "Internal server error" });
         }
     }
 
@@ -165,7 +165,7 @@ export class FlightService {
 
         } catch (error) {
             console.error("Error at Booking: ", error);
-            res.status(500).json({ error: "Internal Server Error" });
+            return res.status(500).json({ error: "Internal Server Error" });
         }
     }
 
@@ -197,7 +197,7 @@ export class FlightService {
 
         } catch (error) {
             console.error("Error at Booking: ", err);
-            res.status(500).json({ error: "Internal Server Error" });
+            return res.status(500).json({ error: "Internal Server Error" });
         }
     }
 }

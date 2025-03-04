@@ -128,14 +128,12 @@ export class EventService {
             // Retrieve the event by ID
             const event = await Event.findById(eventId);
             if (!event) {
-                res.status(404).json({ message: "Event not found" });
-                return;
+                return res.status(404).json({ message: "Event not found" });
             }
 
             // Ensure the user is authorized to update this event
             if (event.createdBy !== userId) {
-                res.status(403).json({ message: "Unauthorized: You cannot update this event" });
-                return;
+                return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
             // Update event properties
@@ -163,14 +161,12 @@ export class EventService {
             // Retrieve the event by ID
             const event = await Event.findById(eventId);
             if (!event) {
-                res.status(404).json({ message: "Event not found" });
-                return;
+                return res.status(404).json({ message: "Event not found" });
             }
 
             // Ensure the user is authorized to delete this event
             if (event.createdBy !== userId) {
-                res.status(403).json({ message: "Unauthorized: You cannot delete this event" });
-                return;
+                return res.status(403).json({ message: "Unauthorized: You cannot delete this event" });
             }
 
             await Event.delete(eventId);  // Delete the event from the database
