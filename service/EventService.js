@@ -13,7 +13,7 @@ export class EventService {
         // Define all routes for event operations
         this.app.post('/events', this.createEvent);
         this.app.get('/events/:id', this.getEventById);
-        this.app.get('/events', this.getAllEvents);
+        this.app.get('/events', this.getEvents);
         this.app.put('/events/:id', this.updateEvent);
         this.app.delete('/events/:id', this.deleteEvent);
     }
@@ -78,6 +78,22 @@ export class EventService {
         } catch (err) {
             console.error("Error retrieving event:", err);
             res.status(500).json({ error: "Unable to fetch event." });
+        }
+    }
+
+    /**
+     * Get events for a given user
+     * @param {express.Request} req
+     * @param {express.Response} res
+     * @returns {Promise<void>}
+     */
+    async getEvents(req, res) {
+        try {
+            const events = await Event.getEvents(res.locals.user.id, res.locals.user.role);
+            res.status(200).json(events);
+        } catch (err) {
+            console.error("Error retrieving events:", err);
+            res.status(500).json({ error: "Unable to fetch events." });
         }
     }
 

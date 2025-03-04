@@ -5,6 +5,23 @@ import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
 import { Event } from '../business/Event.js';
 
+
+const baseEventQuery =
+`
+    SELECT
+        event.event_id, event.name, 
+        creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
+        finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
+        event.start_date, event.end_date,
+        organization.name AS 'org_name', event.org_id,
+        event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget,
+        event.created, event.last_edited
+    FROM event
+        LEFT JOIN organization ON event.org_id = organization.org_id
+        LEFT JOIN user AS creator ON event.created_by = creator.user_id
+        LEFT JOIN user AS finance ON event.finance_man = finance.user_id
+`;
+
 export class EventDB extends DB {
     constructor() {
         super();
@@ -55,21 +72,7 @@ export class EventDB extends DB {
     readEvent(eventId) {
         return new Promise((resolve, reject) => {
             try {
-                const query = `
-                    SELECT
-                        event.event_id, event.name, 
-                        creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
-                        finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
-                        finance.email AS 'finance_man_email', finance.phone_num AS 'finance_man_phone_num', finance.profile_picture AS 'finance_man_profile_pic',
-                        event.start_date, event.end_date,
-                        organization.name AS 'org_name', event.org_id,
-                        event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget,
-                        event.created, event.last_edited
-                    FROM event
-                        LEFT JOIN organization ON event.org_id = organization.org_id
-                        LEFT JOIN user AS creator ON event.created_by = creator.user_id
-                        LEFT JOIN user AS finance ON event.finance_man = finance.user_id
-                    WHERE event.event_id = ?;`;
+                const query = baseEventQuery + 'WHERE event.event_id = ?';
                 
                 this.con.query(query, [eventId], (err, rows) => {
                     if (!err) {
@@ -175,21 +178,101 @@ export class EventDB extends DB {
     getAllEvents() {
         return new Promise((resolve, reject) => {
             try {
-                const query = `
-                    SELECT
-                        event.event_id, event.name, 
-                        creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
-                        finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
-                        event.start_date, event.end_date,
-                        organization.name AS 'org_name', event.org_id,
-                        event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget,
-                        event.created, event.last_edited
-                    FROM event
-                        LEFT JOIN organization ON event.org_id = organization.org_id
-                        LEFT JOIN user AS creator ON event.created_by = creator.user_id
-                        LEFT JOIN user AS finance ON event.finance_man = finance.user_id;`;
+                const query = baseEventQuery;
 
                 this.con.query(query, (err, rows) => {
+                    if (!err) {
+                         // Map the database rows to Event objects
+                         const events = rows.map(row => new Event(
+                            row.event_id,
+                            row.name,
+                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
+                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            row.start_date,
+                            row.end_date,
+                            new Organization(row.org_id,row.org_name),
+                            row.invite_link,
+                            row.description,
+                            row.picture_link,
+                            row.max_budget,
+                            row.current_budget
+                        ));
+                        
+                        resolve(events);
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch(error) {
+                // TODO - error logging
+                console.error(error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * Get events the user is an attendee of from the database
+     * @param {Integer} userId
+     * @returns {Promise<Event[]>} Array of Event objects
+     */
+    getEventsForAttendee(userId) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = baseEventQuery + 
+                    `
+                            LEFT JOIN attendee on event.event_id = attendee.event_id
+					    WHERE attendee.user_id = ?
+                    `;
+
+                this.con.query(query, [userId], (err, rows) => {
+                    if (!err) {
+                         // Map the database rows to Event objects
+                         const events = rows.map(row => new Event(
+                            row.event_id,
+                            row.name,
+                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
+                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            row.start_date,
+                            row.end_date,
+                            new Organization(row.org_id,row.org_name),
+                            row.invite_link,
+                            row.description,
+                            row.picture_link,
+                            row.max_budget,
+                            row.current_budget
+                        ));
+                        
+                        resolve(events);
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch(error) {
+                // TODO - error logging
+                console.error(error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * Get events the user created from the database
+     * @param {Integer} userId
+     * @returns {Promise<Event[]>} Array of Event objects
+     */
+    getEventsCreatedByUser(userId) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = baseEventQuery + 'WHERE event.created_by = ?';
+
+                this.con.query(query, [userId], (err, rows) => {
                     if (!err) {
                          // Map the database rows to Event objects
                          const events = rows.map(row => new Event(

@@ -40,7 +40,7 @@ export class AuthService {
             }
 
             // Set the session
-            var token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: '30m' });
+            var token = jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '30m' });
             res.status(200).cookie("jwt", token, {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain}).send();
         } catch (err) {
             console.error("Error at Login:  ", err);

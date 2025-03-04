@@ -80,6 +80,36 @@ export class Event {
     }
 
     /**
+     * Gets all events for a user
+     * @param {Integer} useId
+     * @param {String} userRole
+     * @returns {Promise<Event[]>} Array of Event objects
+     * @throws {Error}
+     */
+    static async getEvents(useId, userRole) {
+        const db = new EventDB();
+        try {
+            // TODO: Check for permissions before returning events, as events may be private/inaccessible to user.
+            var eventsData;
+            switch(userRole) {
+                case "Attendee":
+                    eventsData = await db.getEventsForAttendee(useId);
+                    break;
+                case "Event Planner":
+                    eventsData = await db.getEventsCreatedByUser(useId);
+                    break;
+            }
+            return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to get events");
+       } finally {
+            db.close();
+        }
+    }
+
+    /**
      * Find all events
      * @returns {Promise<Event[]>} Array of Event objects
      * @throws {Error}
