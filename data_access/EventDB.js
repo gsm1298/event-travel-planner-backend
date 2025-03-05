@@ -305,4 +305,48 @@ export class EventDB extends DB {
             }
         });
     }
+
+    /**
+     * Get events the user created from the database
+     * @param {Integer} userId
+     * @returns {Promise<Event[]>} Array of Event objects
+     */
+    getEventsForFinanceManager(userId) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = baseEventQuery + 'WHERE event.finance_man = ?';
+
+                this.con.query(query, [userId], (err, rows) => {
+                    if (!err) {
+                         // Map the database rows to Event objects
+                         const events = rows.map(row => new Event(
+                            row.event_id,
+                            row.name,
+                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
+                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            row.start_date,
+                            row.end_date,
+                            new Organization(row.org_id,row.org_name),
+                            row.invite_link,
+                            row.description,
+                            row.picture_link,
+                            row.max_budget,
+                            row.current_budget
+                        ));
+                        
+                        resolve(events);
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch(error) {
+                // TODO - error logging
+                console.error(error);
+                reject(error);
+            }
+        });
+    }
 }
