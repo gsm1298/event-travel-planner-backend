@@ -40,7 +40,7 @@ export class UserDB extends DB {
                             resolve(
                                 new User(
                                     row.user_id, row.first_name, row.last_name, row.email,
-                                    row.phone_num, row.gender, row.title, row.pofile_picture,
+                                    row.phone_num, row.gender, row.title, row.profile_picture,
                                     new Organization(row.org_id, row.org_name),
                                     row.role_name, row.hashed_password
                                 )
@@ -78,7 +78,7 @@ export class UserDB extends DB {
                             resolve(
                                 new User(
                                     row.user_id, row.first_name, row.last_name, row.email,
-                                    row.phone_num, row.gender, row.title, row.pofile_picture,
+                                    row.phone_num, row.gender, row.title, row.profile_picture,
                                     new Organization(row.org_id, row.org_name),
                                     row.role_name, row.hashed_password
                                 )
@@ -113,7 +113,7 @@ export class UserDB extends DB {
                         if (rows.length > 0) {
                             const users = rows.map(row => new User(
                                 row.user_id, row.first_name, row.last_name, row.email,
-                                row.phone_num, row.gender, row.title, row.pofile_picture,
+                                row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
                                 row.role_name, row.hashed_password
                             )
@@ -150,7 +150,7 @@ export class UserDB extends DB {
                         if (rows.length > 0) {
                             const users = rows.map(row => new User(
                                 row.user_id, row.first_name, row.last_name, row.email,
-                                row.phone_num, row.gender, row.title, row.pofile_picture,
+                                row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
                                 row.role_name, row.hashed_password
                             )
@@ -191,7 +191,7 @@ export class UserDB extends DB {
                         if (rows.length > 0) {
                             const users = rows.map(row => new User(
                                 row.user_id, row.first_name, row.last_name, row.email,
-                                row.phone_num, row.gender, row.title, row.pofile_picture,
+                                row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
                                 row.role_name, row.hashed_password
                             )
