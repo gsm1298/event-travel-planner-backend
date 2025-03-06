@@ -29,7 +29,7 @@ export class EventService {
     async createEvent(req, res) {
         try {
             // Use data from the request body and authenticated user
-            const { name, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget, currentBudget } = req.body;
+            const { name, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget } = req.body;
             const userId = res.locals.user.id;  // user ID from authenticator middleware
             const userOrg = res.locals.user.org;  // user organization from authenticator middleware
             
@@ -46,7 +46,7 @@ export class EventService {
                 description,
                 pictureLink,
                 maxBudget,
-                currentBudget
+                currentBudget = maxBudget
             );
             
             // Save event to the database
