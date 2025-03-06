@@ -11,8 +11,11 @@ const baseEventQuery =
         flight.flight_id, flight.attendee_id, flight.price, flight.depart_time,
         flight.depart_loc, flight.arrive_time. flight.arrive_loc, flight.status,
         flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code,
-        flight.flight_number
+        flight.flight_number,
+        attendee.event_id,
+        attendee.user_id
     FROM flight
+        LEFT JOIN attendee ON flight.attendee_id = attendee.attendee_id
 `;
 
 export class FlightDB extends DB {
@@ -23,7 +26,7 @@ export class FlightDB extends DB {
     //ALL FLIGHT DB METHODS
 
     /**
-     * Pull Flights for Event
+     * Pull Flights for Event (Financial Use)
      * @param {Integer} eventID
      * @returns {Promise<Flight[]>} Array of Flight Objects
      */
@@ -32,16 +35,32 @@ export class FlightDB extends DB {
             try {
                 const query = baseEventQuery +
                 `
-                        LEFT JOIN attendee ON flight.attendee_id = attendee.attendee_id
                     WHERE attendee.event_id = ?
                 `;
 
                 this.con.query(query, [eventID], (error, rows) => {
-                    if (!err) {
+                    if (!error) {
                         const flights = rows.map((row) => new Flight(
                             row.flight_id,
-                            row.attendee_id
-                        ))
+                            row.attendee_id,
+                            row.price,
+                            row.depart_time,
+                            row.depart_loc,
+                            row.arrive_time,
+                            row.arrive_loc,
+                            row.status,
+                            row.approved_by,
+                            row.seat_num,
+                            row.seat_letter,
+                            row.confirmation_code,
+                            row.flight_number
+                        ));
+
+                        resolve(flights);
+                    }
+                    else {
+                        console.error(error);
+                        reject(error);
                     }
                 })
 

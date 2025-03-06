@@ -1,3 +1,5 @@
+import { FlightDB } from "../data_access/FlightDB.js";
+
 /**
  * @Class Flight
  */
@@ -19,11 +21,10 @@ export class Flight {
      * @param {String} flight_number,
      */
     constructor(
-        id = null, flight_id = null, attendee_id = null, price = null, depart_time = null,
+        flight_id = null, attendee_id = null, price = null, depart_time = null,
         depart_loc = null, arrive_time = null, arrive_loc = null, status = null, approved_by = null,
         seat_num = null, seat_letter = null, confirmation_code = null, flight_number = null
     ){
-        this.id = id;
         this.flight_id = flight_id,
         this.attendee_id = attendee_id,
         this.price = price,
@@ -40,6 +41,29 @@ export class Flight {
     }
 
     /**
-     * CreateFlight
+     * Insert Flight (Create/Update)
+     * @returns {Promise<Integer>}
+     * @throws {Error} 
      */
+    async save() {
+        const db = new FlightDB();
+    }
+
+    /**
+     * Get all Flights by Event ID
+     * @param {Integer} eventID
+     * @returns {Promise<Flight[]>}
+     * @throws {Error}
+     */
+    static async getFlightsByEvent(eventID) {
+        const db = new FlightDB();
+        try {
+            return await db.getAllFlightsForEvent(eventID);
+        } catch(error) {
+            console.error(error);
+            throw new Error("Error grabbing flights by event ID");
+        } finally {
+            db.close();
+        }
+    }
 }

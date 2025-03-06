@@ -4,6 +4,7 @@ import path from 'path';
 import { Duffel } from '@duffel/api';
 import zipcodes from 'zipcodes';
 import { User } from '../business/User.js';
+import { Flight } from '../business/Flight.js';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -227,6 +228,22 @@ export class FlightService {
         } catch (error) {
             console.error("Error at Booking: ", err);
             return res.status(500).json({ error: "Internal Server Error" });
+        }
+    }
+
+    /**@type {express.RequestHandler} */
+    async getEventFlights(req, res) {
+        try {
+            const eventID = req.params.id;
+            const flights = await Flight.getFlightsByEvent(eventID);
+            if(flights) {
+                res.status(200).json(flights);
+            } else {
+                res.status(400).json({message: "Flights not found"});
+            }
+        } catch (error) {
+            console.error("Error retrieving flights for event:", error);
+            res.status(500).json({ error: "Unable to fetch flights"});
         }
     }
 }
