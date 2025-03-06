@@ -24,6 +24,99 @@ export class UserDB extends DB {
     }
 
     /**
+     * Create a new event in the database
+     * @param {User} user
+     * @param {String} inviteLink (Optional) used when registering new user from invite link
+     * @returns {Promise<Integer>} The ID of the inserted event
+     */
+    createUser(user, inviteLink = null) {
+        return new Promise((resolve, reject) => {
+            try {
+                var query;
+                var params;
+
+                // Check if inviteLink is present
+                if (inviteLink) {
+                    query= `
+                        INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, profile_picture, org_id, role_id)
+                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, (SELECT event.org_id FROM event WHERE event.invite_link = ? LIMIT 1), ?)
+                    `;
+                    params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, inviteLink, 1]; // Default to 1 (Attendee)
+                }
+                // Check if orgId is set in user obejct
+                else if (user.org?.id) {
+                    // Check if role is set in userObject
+                    if (user.role) {
+                        query= `
+                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, profile_picture, org_id, role_id)
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT role.role_id FROM role.name = ? LIMIT 1))
+                        `;
+                        params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, user.role];
+                    }
+                    else {
+                        query= `
+                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, profile_picture, org_id, role_id)
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `;
+                        params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, 1]; // Default to 1 (Attendee)
+                    }
+                } else { reject('No invite link present and no organization ID set'); }
+
+                this.con.query(query, params, (err, result) => {
+                    if (!err) {
+                        if (result.insertId > 0) {
+                            resolve(result.insertId);
+                        }
+                        else { resolve(null); }
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch (error) {
+                // TODO - error logging
+                console.error(error);
+                reject(error);
+            }
+
+        });
+    }
+
+    /**
+     * Update an existing user in the database
+     * @param {User} user
+     * @returns {Promise<Boolean>} True if the update was successful
+     */
+    updateUser(user) {
+        return new Promise((resolve, reject) => {
+            try{
+                const query = `
+                    UPDATE user
+                    SET  user.first_name = ?, laste_name = ?, email = ?, hashed_pass = ?, title = ?, phone_num = ?, gender = ?, profile_picture = ?, org_id = ?, role_id = (SELECT role.role_id FROM role WHERE role.role_name = ? LIMIT 1)
+                    WHERE user.user_id = ?`;
+                const params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, user.role];
+
+                this.con.query(query, params, (err, result) => {
+                    if (!err) {
+                        resolve(result.affectedRows > 0);
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch(error) {
+                // TODO - error logging
+                console.error(error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
      * Gets a user based on a given email.
      * @param {String} email
      * @returns {User} user object
