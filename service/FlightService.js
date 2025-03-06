@@ -86,6 +86,10 @@ export class FlightService {
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
+                if(o.payment_requirements.payment_required_by == null) {
+                    return;
+                }
+                
                 var itinerary = [];
 
                 o.slices[0].segments.forEach((s) => {
@@ -98,10 +102,12 @@ export class FlightService {
                         terminal: s.origin_terminal,
                         departure_date: (s.departing_at).slice(0, 10),
                         departure_time: (s.departing_at).slice(11,16),
-                        arrival_time: (s.arriving_at).slices(11,16),
+                        arrival_time: (s.arriving_at).slice(11,16),
                         flight_num: o.slices[0].segments[0].operating_carrier_flight_number,
                     })
                 })
+
+                var stops = slices[0].segments.length;
 
                 data.push({
                     offer_id: o.id,
@@ -112,8 +118,8 @@ export class FlightService {
                     destination_airport: o.slices[0].destination.iata_code,
                     origin_airport: o.slices[0].origin.iata_code,
                     logo: o.owner.logo_symbol_url,
-                    stop_count: o.slices[0].segments.length,
-                    flight_type: stop_count == 1 ? "Nonstop" : "Connecting",
+                    stop_count: stops,
+                    flight_type: stops == 1 ? "Nonstop" : "Connecting",
                     flight_class: o.slices[0].fare_brand_name,
                     itinerary: itinerary
                 })
