@@ -9,7 +9,7 @@ const baseEventQuery =
 `
     SELECT
         flight.flight_id, flight.attendee_id, flight.price, flight.depart_time,
-        flight.depart_loc, flight.arrive_time. flight.arrive_loc, flight.status,
+        flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status,
         flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code,
         flight.flight_number,
         attendee.event_id,

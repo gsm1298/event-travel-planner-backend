@@ -25,7 +25,7 @@ export class FlightService {
 
         app.post('/flights/booking', this.booking);
 
-        app.post('/flights/eventflights', this.booking);
+        app.get('/flights/eventflights', this.getEventFlights);
     }
 
     /**@type {express.RequestHandler} */
