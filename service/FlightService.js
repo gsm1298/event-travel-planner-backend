@@ -86,41 +86,42 @@ export class FlightService {
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
-                var stops = null;
-
-                if (o.slices[0].segments.length > 1) {
-                    stops = [];
-
-                    o.slices[0].segments.forEach((s) => {
-                        stops.push({
-                            origin_code: s.origin.iata_code,
-                            origin_name: s.origin.name,
-                            destination_code: s.destination.iata_code,
-                            destination_name: s.destination.name,
-                            duration: (s.duration).slice(2),
-                            terminal: s.origin_terminal,
-                            departure_time: (s.departing_at).slice(11, 16),
-                            arrival_time: (s.arriving_at).slices(11, 16),
-                            flight_num: o.slices[0].segments[0].operating_carrier_flight_number
-                        })
-                    })
+                if(o.payment_requirements.payment_required_by == null) {
+                    return;
                 }
+                
+                var itinerary = [];
+
+                o.slices[0].segments.forEach((s) => {
+                    itinerary.push({
+                        origin_code: s.origin.iata_code,
+                        origin_name: s.origin.name,
+                        destination_code: s.destination.iata_code,
+                        destination_name: s.destination.name,
+                        duration: (s.duration).slice(2),
+                        terminal: s.origin_terminal,
+                        departure_date: (s.departing_at).slice(0, 10),
+                        departure_time: (s.departing_at).slice(11,16),
+                        arrival_time: (s.arriving_at).slice(11,16),
+                        flight_num: o.slices[0].segments[0].operating_carrier_flight_number,
+                    })
+                })
+
+                var stops = o.slices[0].segments.length;
 
                 data.push({
                     offer_id: o.id,
                     passenger_ids: o.passengers[0].id,
                     airline: o.owner.name,
                     price: o.total_amount,
-                    duration: (o.slices[0].duration).slice(2), // ##H##M format
-                    terminal: o.slices[0].segments[0].origin_terminal,
-                    flight_num: o.slices[0].segments[0].operating_carrier_flight_number,
-                    origin_airport: o.slices[0].origin.iata_code,
+                    duration: o.slices[0].duration,
                     destination_airport: o.slices[0].destination.iata_code,
-                    departure_date: (o.slices[0].segments[0].departing_at).slice(0, 10),
-                    departure_time: (o.slices[0].segments[0].departing_at).slice(11, 16),
-                    arrival_time: (o.slices[0].segments[0].arriving_at).slice(11, 16),
-                    logo: o.slices[0].segments[0].operating_carrier.logo_symbol_url,
-                    itinerary: stops //Defaults to NULL
+                    origin_airport: o.slices[0].origin.iata_code,
+                    logo: o.owner.logo_symbol_url,
+                    stop_count: stops,
+                    flight_type: stops == 1 ? "Nonstop" : "Connecting",
+                    flight_class: o.slices[0].fare_brand_name,
+                    itinerary: itinerary
                 })
             });
 
@@ -135,11 +136,15 @@ export class FlightService {
     async hold(req, res) {
         var input = req.body;
 
-        var user = await User.GetUserById(res.locals.user.id);
-        console.log(user);
+        try {
+            var user = await User.GetUserById(res.locals.user.id);
+        } catch (error) {
+            res.status(500).json({error: "Internal Server Error"});
+        }
+
         try {
             var confirmation = await duffel.orders.create({
-                selected_offers: [input.orderID],
+                selected_offers: [input.offerID],
                 type: "pay_later",
                 passengers: [
                     {
