@@ -107,7 +107,7 @@ export class FlightService {
                     })
                 })
 
-                var stops = slices[0].segments.length;
+                var stops = o.slices[0].segments.length;
 
                 data.push({
                     offer_id: o.id,
