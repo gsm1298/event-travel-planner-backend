@@ -10,6 +10,7 @@ import { AuthService } from './service/AuthService.js';
 import { EventService } from './service/EventService.js';
 import { FlightService } from './service/FlightService.js';
 import { OrganizationService } from './service/OrganizationService.js';
+import { UserService } from './service/UserService.js';
 
 const server = express();
 
@@ -32,6 +33,7 @@ new AuthService(apiRouter); // Also sets authenticator middleware
 new EventService(apiRouter);
 new FlightService(apiRouter);
 new OrganizationService(apiRouter);
+new UserService(apiRouter);
 
 server.listen(process.env.server_port, () => {
     console.log(`Server Starting on ${process.env.server_url} listening on port ${process.env.server_port}`);

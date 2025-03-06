@@ -69,6 +69,39 @@ export class User {
     }
 
     /**
+     * Hashes a password
+     * @param {String} password
+     * @returns {String} hashed password
+     */
+    static async hashPass(password) {
+        return bcrypt.hash(password, 10);
+    }
+
+    /**
+    * Save user to database (Create if new, Update if exists)
+    * @param {String} inviteLink (Optional) used when registering new user from invite link
+    * @returns {Promise<Boolean>} If the User was successfuly saved
+    * @throws {Error}
+    */
+    async save(inviteLink = null) {
+        const db = new UserDB();
+        try {
+            if (this.id) {
+                const success = await db.updateUser(this);
+                return success
+            } else {
+                const userId = await db.createUser(this, inviteLink);
+                this.id = userId;  // Assign new ID after insertion
+                return this.userId ? true : false;
+            }
+        } catch (error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to save event");
+        } finally { db.close(); }
+    }
+
+    /**
      * Gets a user by their id
      * @param {Intager} id
      * @returns {User} User object
