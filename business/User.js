@@ -15,7 +15,8 @@ export class User {
      * @param {String} phoneNum
      * @param {String} gender
      * @param {String} title
-     * @param {Blob} profilePic
+     * //Change back to blob. Made it string to test with current db pfpic - Nick
+     * @param {String} profilePic
      * @param {Organization} org
      * @param {String} role
      * @param {String} hashedPass
