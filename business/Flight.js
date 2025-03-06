@@ -38,4 +38,8 @@ export class Flight {
         this.confirmation_code = confirmation_code,
         this.flight_number = flight_number
     }
+
+    /**
+     * CreateFlight
+     */
 }
