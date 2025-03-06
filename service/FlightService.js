@@ -67,7 +67,7 @@ export class FlightService {
             offers = await duffel.offerRequests.create({
                 slices: [
                     {
-                        origin: airports[0], // Defaulting origin to closest city
+                        origin: 'ROC', // Defaulting origin to closest city
                         destination: input.destination,
                         departure_date: input.departure_date
                     }
@@ -86,9 +86,9 @@ export class FlightService {
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
-                if(o.payment_requirements.payment_required_by == null) {
-                    return;
-                }
+                // if(o.payment_requirements.payment_required_by == null) {
+                //     return;
+                // }
                 
                 var itinerary = [];
 
@@ -106,7 +106,7 @@ export class FlightService {
                         flight_num: o.slices[0].segments[0].operating_carrier_flight_number,
                     })
                 })
-
+                console.log(itinerary);
                 var stops = o.slices[0].segments.length;
 
                 data.push({
