@@ -24,6 +24,8 @@ export class FlightService {
         app.post('/flights/hold', this.hold);
 
         app.post('/flights/booking', this.booking);
+
+        app.post('/flights/eventflights', this.booking);
     }
 
     /**@type {express.RequestHandler} */
@@ -160,30 +162,6 @@ export class FlightService {
                     }
                 ]
             })
-
-            // var confirmation2 = await fetch(`https://api.duffel.com/air/orders`, {
-            //     method: 'POST',
-            //     headers: {
-            //         'Duffel-version': 'v2',
-            //         'Authorization': 'Bearer ' + process.env.duffelToken
-            //     },
-            //     body: JSON.stringify({
-            //         data: {
-            //             selected_offers: [input.offerID],
-            //             type: "hold",
-            //             passengers: [{
-            //                 id: input.passID,
-            //                 given_name: "Test",
-            //                 family_name: "User",
-            //                 title: "mr",
-            //                 gender: "m",
-            //                 phone_number: "+15856018989",
-            //                 email: "test@test.com",
-            //                 born_on: "1990-01-01"
-            //             }]
-            //         }
-            //     })
-            // })
 
             var data = {
                 offer_id: confirmation.offer_id,
