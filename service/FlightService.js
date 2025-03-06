@@ -234,7 +234,7 @@ export class FlightService {
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
         try {
-            const eventID = req.params.id;
+            const eventID = req.body.id;
             const flights = await Flight.getFlightsByEvent(eventID);
             if(flights) {
                 res.status(200).json(flights);
