@@ -44,7 +44,7 @@ export class AuthService {
                 id: user.id,
                 first_name: user.firstName,
                 last_name: user.lastName,
-                org_id: user.org.id,
+                org: user.org,
                 role_id: user.role,
                 profile_picture: user.profilePic,
                 email: user.email
