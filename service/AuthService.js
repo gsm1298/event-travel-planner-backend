@@ -92,7 +92,8 @@ export class AuthService {
 
             jwt.verify(token, jwtSecret, (err, decoded) => {
                 if (err) {
-                    return res.status(401).json({ error: "Not authenticated" });
+                    // Unset invalid cookie
+                    return res.status(401).cookie("jwt", "", { maxAge: 1 }).json({ error: "Not authenticated" });
                 }
 
                 res.locals.user = decoded;
