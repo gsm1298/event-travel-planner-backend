@@ -25,7 +25,7 @@ export class FlightService {
 
         app.post('/flights/booking', this.booking);
 
-        app.post('/flights/eventflights', this.booking);
+        app.get('/flights/eventflights', this.getEventFlights);
     }
 
     /**@type {express.RequestHandler} */
@@ -213,7 +213,7 @@ export class FlightService {
     async getEventFlights(req, res) {
         try {
             const eventID = req.body.id;
-            const flights = await Flight.getFlightsByEvent(eventID);
+            const flights = await Flight.getFlightsByEvent(1);
             if(flights) {
                 res.status(200).json(flights);
             } else {
