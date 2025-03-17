@@ -169,7 +169,7 @@ export class FlightService {
                 expiration: confirmation.data.payment_status.payment_required_by
             }
 
-            res.status(200).send(json.stringify(data));
+            res.status(200).send(JSON.stringify(data));
 
         } catch (error) {
             console.error("Error at Booking: ", error);

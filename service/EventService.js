@@ -46,7 +46,7 @@ export class EventService {
                 description,
                 pictureLink,
                 maxBudget,
-                currentBudget = maxBudget
+                maxBudget
             );
             
             // Save event to the database
