@@ -12,6 +12,7 @@ const baseEventQuery =
         event.event_id, event.name, 
         creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
         finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
+        finance.email AS 'finance_man_email', finance.phone_num AS 'finance_man_phone_num', finance.profile_picture AS 'finance_man_profile_pic',
         event.start_date, event.end_date,
         organization.name AS 'org_name', event.org_id,
         event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget,
