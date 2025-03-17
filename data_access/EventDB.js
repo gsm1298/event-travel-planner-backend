@@ -124,7 +124,7 @@ export class EventDB extends DB {
                     UPDATE event
                     SET name = ?, created_by = ?, finance_man = ?, start_date = ?, end_date = ?, org_id = ?, invite_link = ?, description = ?, picture_link = ?, max_budget = ?, current_budget = ?
                     WHERE event_id = ?`;
-                const params = [event.name, event.created_by, event.finance_man, event.start_date, event.end_date, event.org_id, event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget, event.event_id];
+                const params = [event.name, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.id];
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {

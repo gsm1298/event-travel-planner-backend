@@ -132,15 +132,21 @@ export class EventService {
             }
 
             // Ensure the user is authorized to update this event
-            if (event.createdBy !== userId) {
+            if (event.createdBy.id !== userId) {
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
             // Update event properties
             Object.assign(event, eventData);  // Update only the provided fields
 
-            await event.save();  // Save updated event
-            res.status(200).json({ message: "Event updated successfully" });
+            var success = await event.save();  // Save updated event
+
+            if (success) {
+                res.status(200).json({ message: "Event updated successfully" });
+            }
+            else {
+                res.status(500).json({ message: "Could not update event" });
+            }
         } catch (err) {
             console.error("Error updating event:", err);
             res.status(500).json({ error: "Unable to update event." });
