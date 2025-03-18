@@ -166,10 +166,10 @@ export class FlightService {
             var data = {
                 offer_id: confirmation.offer_id,
                 total: confirmation.total_amount,
-                expiration: confirmation.payment_status.payment_required_by
+                expiration: confirmation.data.payment_status.payment_required_by
             }
 
-            res.status(200).send(json.stringify(data));
+            res.status(200).send(JSON.stringify(data));
 
         } catch (error) {
             console.error("Error at Booking: ", error);
