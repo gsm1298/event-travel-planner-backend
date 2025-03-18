@@ -13,7 +13,7 @@ export class EventService {
         // Define all routes for event operations
         this.app.post('/events', this.createEvent);
         this.app.get('/events/:id', this.getEventById);
-        this.app.get('/events', this.getAllEvents);
+        this.app.get('/events', this.getEvents);
         this.app.put('/events/:id', this.updateEvent);
         this.app.delete('/events/:id', this.deleteEvent);
     }
@@ -29,7 +29,7 @@ export class EventService {
     async createEvent(req, res) {
         try {
             // Use data from the request body and authenticated user
-            const { name, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget, currentBudget } = req.body;
+            const { name, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget } = req.body;
             const userId = res.locals.user.id;  // user ID from authenticator middleware
             const userOrg = res.locals.user.org;  // user organization from authenticator middleware
             
@@ -46,7 +46,7 @@ export class EventService {
                 description,
                 pictureLink,
                 maxBudget,
-                currentBudget
+                maxBudget
             );
             
             // Save event to the database
@@ -82,6 +82,22 @@ export class EventService {
     }
 
     /**
+     * Get events for a given user
+     * @param {express.Request} req
+     * @param {express.Response} res
+     * @returns {Promise<void>}
+     */
+    async getEvents(req, res) {
+        try {
+            const events = await Event.getEvents(res.locals.user.id, res.locals.user.role);
+            res.status(200).json(events);
+        } catch (err) {
+            console.error("Error retrieving events:", err);
+            res.status(500).json({ error: "Unable to fetch events." });
+        }
+    }
+
+    /**
      * Get all events
      * @param {express.Request} req
      * @param {express.Response} res
@@ -112,14 +128,12 @@ export class EventService {
             // Retrieve the event by ID
             const event = await Event.findById(eventId);
             if (!event) {
-                res.status(404).json({ message: "Event not found" });
-                return;
+                return res.status(404).json({ message: "Event not found" });
             }
 
             // Ensure the user is authorized to update this event
             if (event.createdBy !== userId) {
-                res.status(403).json({ message: "Unauthorized: You cannot update this event" });
-                return;
+                return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
             // Update event properties
@@ -147,14 +161,12 @@ export class EventService {
             // Retrieve the event by ID
             const event = await Event.findById(eventId);
             if (!event) {
-                res.status(404).json({ message: "Event not found" });
-                return;
+                return res.status(404).json({ message: "Event not found" });
             }
 
             // Ensure the user is authorized to delete this event
             if (event.createdBy !== userId) {
-                res.status(403).json({ message: "Unauthorized: You cannot delete this event" });
-                return;
+                return res.status(403).json({ message: "Unauthorized: You cannot delete this event" });
             }
 
             await Event.delete(eventId);  // Delete the event from the database

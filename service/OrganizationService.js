@@ -19,62 +19,82 @@ export class OrganizationService {
 
     /** @type {express.RequestHandler} */
     async createOrganization(req, res) {
-        // Use data from the request body
-        const { name } = req.body;
+        try{
+            // Use data from the request body
+            const { name } = req.body;
 
-        //Create Organization
-        const newOrg = new Organization(null, name);
+            //Create Organization
+            const newOrg = new Organization(null, name);
 
-        //Save to DB
-        const createdOrg = await newOrg.save();
+            //Save to DB
+            const createdOrg = await newOrg.save();
 
-        if (createdOrg) {
-            res.status(201).json({ message: "Organization created successfully", createdOrg });
-        }
-        else {
-            res.status(500).json({ error: "Unable to create Organization." });
+            if (createdOrg) {
+                res.status(201).json({ message: "Organization created successfully", createdOrg });
+            }
+            else {
+                res.status(500).json({ error: "Unable to create Organization." });
+            }
+        } catch (err) {
+            console.error("Error at Create Organization:  ", err);
+            res.status(500).json({ error: "Internal server error" });
         }
     }
 
     /** @type {express.RequestHandler} */
     async getOrganizationById(req, res) {
-        const orgId = req.params.id;
-        const org = await Organization.getOrg(orgId);
-        if (org) {
-            res.status(200).json(org);
-        } 
-        else {
-            res.status(404).json({ message: "Organization not found" });
+        try{
+            const orgId = req.params.id;
+            const org = await Organization.getOrg(orgId);
+            if (org) {
+                res.status(200).json(org);
+            } 
+            else {
+                res.status(404).json({ message: "Organization not found" });
+            }
+        } catch (err) {
+            console.error("Error at Get Organization by ID:  ", err);
+            res.status(500).json({ error: "Internal server error" });
         }
     }
 
     /** @type {express.RequestHandler} */
     async getAllOrganizations(req, res) {
-        const orgs = await Organization.getOrgs();
-        if (orgs) { res.status(200).json(orgs); }
-        else { res.status(404).json({ message: "No Organizations found" }); }
+        try{
+            const orgs = await Organization.getOrgs();
+            if (orgs) { res.status(200).json(orgs); }
+            else { res.status(404).json({ message: "No Organizations found" }); }
+        } catch (err) {
+            console.error("Error at Get All Organizations:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
     }
 
     /** @type {express.RequestHandler} */
     async updateOrganization(req, res) {
-        const orgId = req.params.id;
-        const name = req.body.name;
+        try{ 
+            const orgId = req.params.id;
+            const name = req.body.name;
 
-        // Retrieve the Organization by ID
-        const org = await Organization.getOrg(orgId);
-        if (!org) {
-            res.status(404).json({ message: "Organization not found" });
-            return;
+            // Retrieve the Organization by ID
+            const org = await Organization.getOrg(orgId);
+            if (!org) {
+                res.status(404).json({ message: "Organization not found" });
+                return;
+            }
+
+            // Update Org Object fields
+            org.name = name;
+
+            // Update Org in DB
+            const updatedOrg = await org.save();
+            if (updatedOrg) {
+                res.status(200).json({ message: "Organization updated successfully", updatedOrg });
+            }
+            else { res.status(500).json({ error: "Unable to update Organization." }); }
+        } catch (err) {
+            console.error("Error at Update Organization:  ", err);
+            res.status(500).json({ error: "Internal server error" });
         }
-
-        // Update Org Object fields
-        org.name = name;
-
-        // Update Org in DB
-        const updatedOrg = await org.save();
-        if (updatedOrg) {
-            res.status(200).json({ message: "Organization updated successfully", updatedOrg });
-        }
-        else { res.status(500).json({ error: "Unable to update Organization." }); }
     }
 }

@@ -27,18 +27,18 @@ export class OrganizationDB extends DB {
                             var row = rows[0];
                             resolve(new Organization(row.org_id, row.name));
                         } 
-                        else { resolve(false); }
+                        else { resolve(null); }
                     } 
                     else {
                         // TODO - error logging
-                        console.log(err);
-                        resolve(false);
+                        console.error(err);
+                        reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.log(error);
-                resolve(false);
+                console.error(error);
+                reject(error);
             }
         });
     }
@@ -59,18 +59,18 @@ export class OrganizationDB extends DB {
                         if (rows.length > 0) {
                             resolve( rows.map( row => new Organization(row.org_id, row.name)) );
                         } 
-                        else { resolve(false); }
+                        else { resolve(null); }
                     } 
                     else {
                         // TODO - error logging
-                        console.log(err);
-                        resolve(false);
+                        console.error(err);
+                        reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.log(error);
-                resolve(false);
+                console.error(error);
+                reject(error);
             }
         });
     }
@@ -91,18 +91,18 @@ export class OrganizationDB extends DB {
                         if (result.insertId > 0) {
                             resolve(new Organization(result.insertId, org.name));
                         } 
-                        else { resolve(false); }
+                        else { resolve(null); }
                     } 
                     else {
                         // TODO - error logging
-                        console.log(err);
-                        resolve(false);
+                        console.error(err);
+                        reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.log(error);
-                resolve(false);
+                console.error(error);
+                reject(error);
             }
         });
     }
@@ -128,14 +128,14 @@ export class OrganizationDB extends DB {
                     } 
                     else {
                         // TODO - error logging
-                        console.log(err);
-                        resolve(false);
+                        console.error(err);
+                        reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.log(error);
-                resolve(false);
+                console.error(error);
+                reject(error);
             }
         });
     }
