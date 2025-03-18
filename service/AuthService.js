@@ -68,9 +68,9 @@ export class AuthService {
             // Configure the mailoptions object
             const mailOptions = {
                 from: 'yourusername@email.com',
-                to: 'luther84@ethereal.email',
+                to: user.email,
                 subject: 'Login Notification',
-                text: 'A user has logged in with the following details:\n\n' + 'Email: ' + input.email + '\n'
+                text: 'A user has logged in with the following details:\n\n' + 'Email: ' + user.email + '\n'+ 'Name: ' + user.firstName + ' ' + user.lastName
             };
             
             // Send the email
