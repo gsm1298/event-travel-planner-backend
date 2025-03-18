@@ -12,12 +12,12 @@ const jwtSecret = process.env.jwtSecret;
 
 // Init Nodemailer Transporter
 const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
+    host: process.env.smtphost,
+    port: process.env.smtpport,
     secure: false, // use SSL
     auth: {
-      user: 'luther84@ethereal.email',
-      pass: 'SfgTAyMDzjVcS184H8' // generated ethereal password,
+      user: process.env.smtpuser,
+      pass: process.env.smtppass
     }
   });
   
