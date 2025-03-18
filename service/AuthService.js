@@ -3,11 +3,25 @@ import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import { User } from '../business/User.js';
+import nodemailer from 'nodemailer';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
 // Set jwtSecret from env file
 const jwtSecret = process.env.jwtSecret;
+
+// Init Nodemailer Transporter
+const transporter = nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false, // use SSL
+    auth: {
+      user: 'luther84@ethereal.email',
+      pass: 'SfgTAyMDzjVcS184H8' // generated ethereal password,
+    }
+  });
+  
+
 
 export class AuthService {
     /**
@@ -49,6 +63,25 @@ export class AuthService {
                 profile_picture: user.profilePic,
                 email: user.email
             };
+            
+            // Send the notification email
+            // Configure the mailoptions object
+            const mailOptions = {
+                from: 'yourusername@email.com',
+                to: 'luther84@ethereal.email',
+                subject: 'Login Notification',
+                text: 'A user has logged in with the following details:\n\n' + 'Email: ' + input.email + '\n'
+            };
+            
+            // Send the email
+            transporter.sendMail(mailOptions, function(error, info){
+                if (error) {
+                console.log("Error:" +  error);
+                } else {
+                console.log('Email sent: ' + info.response);
+                }
+            });
+
 
             // Set the session
             var token = jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '30m' });
