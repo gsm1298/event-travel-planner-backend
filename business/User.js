@@ -20,11 +20,12 @@ export class User {
      * @param {Organization} org
      * @param {String} role
      * @param {String} hashedPass
+     * @param {String} dob
      */
     constructor(
         id = null, firstName = null, lastName = null, email = null,
         phoneNum = null, gender = null, title = null, profilePic = null,
-        org = null, role = null, hashedPass = null
+        org = null, role = null, hashedPass = null, dob = null
     ) {
 
         this.id = id;
@@ -38,6 +39,7 @@ export class User {
         this.org = org;
         this.role = role;
         this.hashedPass = hashedPass;
+        this.dob = dob;
     }
 
     /**

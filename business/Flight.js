@@ -23,7 +23,8 @@ export class Flight {
     constructor(
         flight_id = null, attendee_id = null, price = null, depart_time = null,
         depart_loc = null, arrive_time = null, arrive_loc = null, status = null, approved_by = null,
-        seat_num = null, seat_letter = null, confirmation_code = null, flight_number = null
+        seat_num = null, seat_letter = null, confirmation_code = null, flight_number = null, 
+        order_id = null
     ){
         this.flight_id = flight_id,
         this.attendee_id = attendee_id,
@@ -37,7 +38,8 @@ export class Flight {
         this.seat_num = seat_num,
         this.seat_letter = seat_letter,
         this.confirmation_code = confirmation_code,
-        this.flight_number = flight_number
+        this.flight_number = flight_number,
+        this.order_id = order_id
     }
 
     /**
@@ -47,6 +49,19 @@ export class Flight {
      */
     async save() {
         const db = new FlightDB();
+        try {
+            if(this.flight_id) {
+                const ret = await db.updateFlight(this);
+                return ret ? this.id : null;
+            } else {
+                const id = await db.createFlight(this);
+                return id;
+            }
+        } catch (error) {
+            console.error(error);
+            throw new Error("Error attempting to insert/save event");
+        }
+
     }
 
     /**

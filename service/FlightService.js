@@ -28,6 +28,7 @@ export class FlightService {
         app.get('/flights/eventflights', this.getEventFlights);
     }
 
+    // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
         var input = req.body;
@@ -109,7 +110,7 @@ export class FlightService {
                         flight_num: o.slices[0].segments[0].operating_carrier_flight_number,
                     })
                 })
-                console.log(itinerary);
+
                 var stops = o.slices[0].segments.length;
 
                 data.push({
@@ -121,7 +122,6 @@ export class FlightService {
                     destination_airport: o.slices[0].destination.iata_code,
                     origin_airport: o.slices[0].origin.iata_code,
                     logo: o.owner.logo_symbol_url,
-                    stop_count: stops,
                     flight_type: stops == 1 ? "Nonstop" : "Connecting",
                     flight_class: o.slices[0].fare_brand_name,
                     itinerary: itinerary
@@ -135,6 +135,7 @@ export class FlightService {
         }
     }
 
+    // Place Flight on Hold
     /**@type {express.RequestHandler} */
     async hold(req, res) {
         var input = req.body;
@@ -152,22 +153,27 @@ export class FlightService {
                 passengers: [
                     {
                         id: input.passID,
-                        given_name: "Test",
-                        family_name: "User",
+                        given_name: user.firstName,
+                        family_name: user.lastName,
                         title: "mr",
-                        gender: "m",
-                        phone_number: "+15856018989",
-                        email: "test@test.com",
-                        born_on: "1990-01-01"
+                        gender: user.gender,
+                        phone_number: "+1" + user.phoneNum,
+                        email: user.email,
+                        born_on: user.dob
                     }
                 ]
             })
 
             var data = {
-                offer_id: confirmation.offer_id,
-                total: confirmation.total_amount,
-                expiration: confirmation.data.payment_status.payment_required_by
+                id: confirmation.data.id,
+                offer_id: confirmation.data.offer_id,
+                total: confirmation.data.total_amount,
+                expiration: confirmation.data.payment_status.payment_required_by,
+                guarantee: confirmation.data.payment_status.price_guarantee_expires_at
             }
+
+            var newHold = Flight(null, res.locals.user.id, flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, flight.approved_by, flight.seat_num, flight.confirmation_code, flight.flight_number, data.id);
+            newHold.save();
 
             res.status(200).send(JSON.stringify(data));
 
@@ -177,51 +183,43 @@ export class FlightService {
         }
     }
 
-    //WIP
+    // Book Flight
     /**@type {express.RequestHandler} */
     async booking(req, res) {
         var input = req.body;
 
-        var user = User.GetUserById(res.locals.user.id);
-
-        duffel.orders.create({
-            selected_offers: [input.orderID],
-            type: "instant",
-            passengers: [
-                {
-                    id: input.passID,
-                    given_name: user.firstName,
-                    family_name: user.lastName,
-                    title: user.title,
-                    gender: user.gender,
-                    phone_number: user.phoneNum,
-                    email: user.email,
-                    born_on: user.dob
-                }
-            ]
-        })
-
         try {
+            var confirmation = await duffel.payments.create({
+                'order_id': input.id,
+                'payment': {
+                    'type': 'balance',
+                    'amount': input.price,
+                    'currency': 'USD'
+                }
+            })
 
+            res.status(200).json({ success: 'Flight Booked' });
         } catch (error) {
-            console.error("Error at Booking: ", err);
+            console.error("Error at Booking: ", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
 
+    // Get all Flights for input Event
+    // For Finance Use
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
         try {
             const eventID = req.body.id;
-            const flights = await Flight.getFlightsByEvent(1);
+            const flights = await Flight.getFlightsByEvent(eventID);
             if(flights) {
                 res.status(200).json(flights);
             } else {
-                res.status(400).json({message: "Flights not found"});
+                res.status(400).json({ message: "Flights not found" });
             }
         } catch (error) {
             console.error("Error retrieving flights for event:", error);
-            res.status(500).json({ error: "Unable to fetch flights"});
+            res.status(500).json({ error: "Unable to fetch flights" });
         }
     }
 }
