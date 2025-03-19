@@ -89,9 +89,9 @@ export class FlightService {
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
-                // if(o.payment_requirements.payment_required_by == null) {
-                //     return;
-                // }
+                if(o.payment_requirements.payment_required_by == null) {
+                    return;
+                }
                 
                 var itinerary = [];
 
@@ -138,9 +138,10 @@ export class FlightService {
     /**@type {express.RequestHandler} */
     async hold(req, res) {
         var input = req.body;
+        var user;
 
         try {
-            var user = await User.GetUserById(res.locals.user.id);
+            user = await User.GetUserById(res.locals.user.id);
         } catch (error) {
             res.status(500).json({error: "Internal Server Error"});
         }
@@ -152,13 +153,13 @@ export class FlightService {
                 passengers: [
                     {
                         id: input.passID,
-                        given_name: "Test",
-                        family_name: "User",
+                        given_name: user.firstName,
+                        family_name: user.lastName,
                         title: "mr",
-                        gender: "m",
-                        phone_number: "+15856018989",
-                        email: "test@test.com",
-                        born_on: "1990-01-01"
+                        gender: user.gender,
+                        phone_number: "+1" + user.phoneNum,
+                        email: user.email,
+                        born_on: user.dob
                     }
                 ]
             })
@@ -184,25 +185,8 @@ export class FlightService {
 
         var user = User.GetUserById(res.locals.user.id);
 
-        duffel.orders.create({
-            selected_offers: [input.orderID],
-            type: "instant",
-            passengers: [
-                {
-                    id: input.passID,
-                    given_name: user.firstName,
-                    family_name: user.lastName,
-                    title: user.title,
-                    gender: user.gender,
-                    phone_number: user.phoneNum,
-                    email: user.email,
-                    born_on: user.dob
-                }
-            ]
-        })
-
         try {
-
+            
         } catch (error) {
             console.error("Error at Booking: ", err);
             return res.status(500).json({ error: "Internal Server Error" });
@@ -213,7 +197,8 @@ export class FlightService {
     async getEventFlights(req, res) {
         try {
             const eventID = req.body.id;
-            const flights = await Flight.getFlightsByEvent(1);
+            const flights = await Flight.getFlightsByEvent(eventID);
+        
             if(flights) {
                 res.status(200).json(flights);
             } else {

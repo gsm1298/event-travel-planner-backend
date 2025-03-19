@@ -64,6 +64,7 @@ export class AuthService {
                 email: user.email
             };
             
+
             // Send the notification email
             // Configure the mailoptions object
             const mailOptions = {
