@@ -162,7 +162,6 @@ export class FlightService {
                         gender: user.gender,
                         phone_number: "+1" + user.phoneNum,
                         email: user.email,
-                        born_on: user.dob
                         gender: user.gender,
                         phone_number: "+1" + user.phoneNum,
                         email: user.email,
