@@ -32,7 +32,8 @@ export class EventService {
             const { name, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget } = req.body;
             const userId = res.locals.user.id;  // user ID from authenticator middleware
             const userOrg = res.locals.user.org;  // user organization from authenticator middleware
-            
+            const currentBudget = maxBudget;
+
             // Create the event
             const newEvent = new Event(
                 null,  // ID will be auto-generated
@@ -46,7 +47,7 @@ export class EventService {
                 description,
                 pictureLink,
                 maxBudget,
-                maxBudget
+                currentBudget
             );
             
             // Save event to the database

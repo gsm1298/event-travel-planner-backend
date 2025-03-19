@@ -1,5 +1,6 @@
 import express from 'express';
-import { Organization } from '../business/Organization.js'
+import { Organization } from '../business/Organization.js';
+import { User } from '../business/User.js';
 
 export class OrganizationService {
     /**
@@ -11,6 +12,7 @@ export class OrganizationService {
 
         // Define all routes for organization operations
         this.app.post('/organization', this.createOrganization);
+        this.app.get('/organization/users', this.getUsersInOrg);
         this.app.get('/organization/:id', this.getOrganizationById);
         this.app.get('/organizations', this.getAllOrganizations);
         this.app.put('/organization/:id', this.updateOrganization);
@@ -19,7 +21,7 @@ export class OrganizationService {
 
     /** @type {express.RequestHandler} */
     async createOrganization(req, res) {
-        try{
+        try {
             // Use data from the request body
             const { name } = req.body;
 
@@ -43,12 +45,12 @@ export class OrganizationService {
 
     /** @type {express.RequestHandler} */
     async getOrganizationById(req, res) {
-        try{
+        try {
             const orgId = req.params.id;
             const org = await Organization.getOrg(orgId);
             if (org) {
                 res.status(200).json(org);
-            } 
+            }
             else {
                 res.status(404).json({ message: "Organization not found" });
             }
@@ -60,7 +62,7 @@ export class OrganizationService {
 
     /** @type {express.RequestHandler} */
     async getAllOrganizations(req, res) {
-        try{
+        try {
             const orgs = await Organization.getOrgs();
             if (orgs) { res.status(200).json(orgs); }
             else { res.status(404).json({ message: "No Organizations found" }); }
@@ -72,7 +74,7 @@ export class OrganizationService {
 
     /** @type {express.RequestHandler} */
     async updateOrganization(req, res) {
-        try{ 
+        try {
             const orgId = req.params.id;
             const name = req.body.name;
 
@@ -94,6 +96,23 @@ export class OrganizationService {
             else { res.status(500).json({ error: "Unable to update Organization." }); }
         } catch (err) {
             console.error("Error at Update Organization:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }
+
+    /** @type {express.RequestHandler} */
+    async getUsersInOrg(req, res) {
+        try {
+            const user = await User.GetUserById(res.locals.user.id);
+            const users = await User.GetAllUsersFromOrg(user.org.id);
+            if (users) {
+                res.status(200).json(users);
+            }
+            else {
+                res.status(404).json({ message: "No users found in Organization" });
+            }
+        } catch (err) {
+            console.error("Error at Get Users in Organization:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }

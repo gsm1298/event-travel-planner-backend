@@ -90,9 +90,9 @@ export class FlightService {
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
-                // if(o.payment_requirements.payment_required_by == null) {
-                //     return;
-                // }
+                if(o.payment_requirements.payment_required_by == null) {
+                    return;
+                }
                 
                 var itinerary = [];
 
@@ -139,9 +139,10 @@ export class FlightService {
     /**@type {express.RequestHandler} */
     async hold(req, res) {
         var input = req.body;
+        var user;
 
         try {
-            var user = await User.GetUserById(res.locals.user.id);
+            user = await User.GetUserById(res.locals.user.id);
         } catch (error) {
             res.status(500).json({error: "Internal Server Error"});
         }
@@ -155,7 +156,13 @@ export class FlightService {
                         id: input.passID,
                         given_name: user.firstName,
                         family_name: user.lastName,
+                        given_name: user.firstName,
+                        family_name: user.lastName,
                         title: "mr",
+                        gender: user.gender,
+                        phone_number: "+1" + user.phoneNum,
+                        email: user.email,
+                        born_on: user.dob
                         gender: user.gender,
                         phone_number: "+1" + user.phoneNum,
                         email: user.email,

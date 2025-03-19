@@ -12,12 +12,12 @@ const jwtSecret = process.env.jwtSecret;
 
 // Init Nodemailer Transporter
 const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
+    host: process.env.smtphost,
+    port: process.env.smtpport,
     secure: false, // use SSL
     auth: {
-      user: 'luther84@ethereal.email',
-      pass: 'SfgTAyMDzjVcS184H8' // generated ethereal password,
+      user: process.env.smtpuser,
+      pass: process.env.smtppass
     }
   });
   
@@ -64,13 +64,14 @@ export class AuthService {
                 email: user.email
             };
             
+
             // Send the notification email
             // Configure the mailoptions object
             const mailOptions = {
                 from: 'yourusername@email.com',
-                to: 'luther84@ethereal.email',
+                to: user.email,
                 subject: 'Login Notification',
-                text: 'A user has logged in with the following details:\n\n' + 'Email: ' + input.email + '\n'
+                text: 'A user has logged in with the following details:\n\n' + 'Email: ' + user.email + '\n'+ 'Name: ' + user.firstName + ' ' + user.lastName
             };
             
             // Send the email
