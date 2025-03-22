@@ -1,6 +1,8 @@
 import { Organization } from '../business/Organization.js';
 import { UserDB } from '../data_access/UserDB.js';
 import bcrypt from 'bcrypt';
+import speakeasy from 'speakeasy';
+
 /**
  * @Class User
  */
@@ -20,12 +22,14 @@ export class User {
      * @param {Organization} org
      * @param {String} role
      * @param {String} hashedPass
+     * @param {String} mfaSecret
+     * @param {String} mfaEnabled
      * @param {String} dob
      */
     constructor(
         id = null, firstName = null, lastName = null, email = null,
         phoneNum = null, gender = null, title = null, profilePic = null,
-        org = null, role = null, hashedPass = null, dob = null
+        org = null, role = null, hashedPass = null, mfaSecret = null, mfaEnabled = null, dob = null
     ) {
 
         this.id = id;
@@ -39,7 +43,39 @@ export class User {
         this.org = org;
         this.role = role;
         this.hashedPass = hashedPass;
+        this.mfaSecret = mfaSecret;
+        this.mfaEnabled= mfaEnabled;
         this.dob = dob;
+    }
+
+    /**
+     * Generates a MFA secret for the user
+     * This is used to generate a TOTP code for the user to use for MFA
+     * @returns {secret}
+     * 
+     */
+    async GenerateSecret() {
+        // Generate a 6-digit TOTP code
+        const secret = speakeasy.generateSecret({
+            length: 20, // Length of the secret
+        });
+        this.mfaSecret = secret;
+        await this.save(); // Save the secret to the database
+    }
+
+    /**
+    * Generates a MFA token for the user
+    * @returns {String} MFA token   
+    */
+    async GenerateToken() {
+        const totpCode = speakeasy.totp({
+            secret: this.mfaSecret.base32,
+            encoding: 'base32',
+            step: 300, // Time step in seconds, 15 minutes
+            digits: 6,
+        });
+
+        return totpCode; // Return the generated token
     }
 
     /**
@@ -47,7 +83,7 @@ export class User {
      * If it is, sets the user object variables to be that of the user logging in.
      * @param {String} email
      * @param {String} password
-     * @returns {Boolean} loggin success
+     * @returns {Boolean} login success
      */
     async CheckLogin(email, password) {
         const db = new UserDB();
@@ -59,6 +95,44 @@ export class User {
 
             // Check if password is correct
             const match = await bcrypt.compare(password, user.hashedPass)
+
+            // If match, set user object to user object returned by db
+            if (match) { Object.assign(this, user); return true; }
+            else { return false; }
+        } catch (error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to check login");
+        } finally { db.close(); }
+    }
+
+    /**
+     * Checks if a MFA code is valid. 
+     * If it is, sets the user object variables to be that of the user logging in.
+     * @param {String} email
+     * @param {String} mfaCode
+     * @returns {Boolean} login success
+     */
+    async CheckMFA(email, mfaCode) {
+        const db = new UserDB();
+        try {
+            const user = await db.GetUserByEmail(email);
+
+            // Check if user was found
+            if (!user) { return false; }
+
+            if (!user.mfaSecret) { return false; } // No MFA secret set for user
+
+            // Check if 2FA code is correct
+            //const match = await bcrypt.compare(mfaCode, user.hashedMfaCode)
+
+            // Verify the token
+            const match = speakeasy.totp.verify({
+                secret: user.mfaSecret.base32,
+                encoding: "base32",
+                token: mfaCode,
+                step: 300 // Match the generation step
+            });
 
             // If match, set user object to user object returned by db
             if (match) { Object.assign(this, user); return true; }

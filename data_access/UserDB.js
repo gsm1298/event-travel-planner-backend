@@ -9,10 +9,10 @@ const baseUserQuery =
 `
     SELECT 
         user.user_id, user.first_name, user.last_name, user.email, user.phone_num,
-        user.gender, user.title, user.hashed_password, 
+        user.gender, user.title, user.hashed_password, user.mfa_secret,
         user.profile_picture, user.org_id, organization.name AS 'org_name',
         user.known_traveler_number, user.department, user.role_id, role.name AS 'role_name',
-        user.2fa_enabled, user.last_login, user.created, user.last_edited
+        user.mfa_enabled, user.last_login, user.created, user.last_edited
     FROM user
         LEFT JOIN organization ON user.org_id = organization.org_id
         LEFT JOIN role ON user.role_id = role.role_id
@@ -94,9 +94,9 @@ export class UserDB extends DB {
             try{
                 const query = `
                     UPDATE user
-                    SET  user.first_name = ?, laste_name = ?, email = ?, hashed_pass = ?, title = ?, phone_num = ?, gender = ?, profile_picture = ?, org_id = ?, role_id = (SELECT role.role_id FROM role WHERE role.role_name = ? LIMIT 1)
+                    SET  user.first_name = ?, last_name = ?, email = ?, hashed_password = ?, mfa_secret = ?, title = ?, phone_num = ?, gender = ?, profile_picture = ?, org_id = ?, mfa_enabled = ?
                     WHERE user.user_id = ?`;
-                const params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, user.role];
+                const params = [user.firstName, user.lastName, user.email, user.hashedPass, JSON.stringify(user.mfaSecret), user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, user.mfaEnabled, user.id];
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
@@ -135,9 +135,10 @@ export class UserDB extends DB {
                                     row.user_id, row.first_name, row.last_name, row.email,
                                     row.phone_num, row.gender, row.title, row.profile_picture,
                                     new Organization(row.org_id, row.org_name),
-                                    row.role_name, row.hashed_password
+                                    row.role_name, row.hashed_password, JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.dob
                                 )
                             );
+                            
                         }
                         else { resolve(null); }
                     }
