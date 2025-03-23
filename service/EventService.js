@@ -1,7 +1,12 @@
 import express from 'express';
 import { Event } from '../business/Event.js'; // Event model
 import { AuthService } from './AuthService.js'; // Assuming you already have the AuthService
+import { logger } from '../service/LogService.mjs'; // logging
 
+// Init child logger instance
+const log = logger.child({
+    service : "Event", //specify module where logs are from
+});
 export class EventService {
     /**
      * @constructor
@@ -50,13 +55,27 @@ export class EventService {
                 currentBudget
             );
             
+            log.verbose("creating new event", {
+                name: newEvent.name,
+                userId: newEvent.userId,  
+                financeMan: newEvent.financeMan,
+                startDate: newEvent.startDate,
+                endDate: newEvent.endDate,
+                userOrg: newEvent.userOrg,  
+                inviteLink: newEvent.inviteLink,
+                description: newEvent.description,
+                pictureLink: newEvent.inviteLink,
+                maxBudget: newEvent.maxBudget,
+                currentBudget: newEvent.currentBudget
+            })
+
             // Save event to the database
             const eventId = await newEvent.save();
             
             // Respond with the created event ID
             res.status(201).json({ message: "Event created successfully", eventId });
         } catch (err) {
-            console.error("Error creating event:", err);
+            log.error("Error creating event:", err);
             res.status(500).json({ error: "Unable to create event." });
         }
     }
@@ -77,7 +96,7 @@ export class EventService {
                 res.status(404).json({ message: "Event not found" });
             }
         } catch (err) {
-            console.error("Error retrieving event:", err);
+            log.error("Error retrieving event:", err);
             res.status(500).json({ error: "Unable to fetch event." });
         }
     }
@@ -93,7 +112,7 @@ export class EventService {
             const events = await Event.getEvents(res.locals.user.id, res.locals.user.role);
             res.status(200).json(events);
         } catch (err) {
-            console.error("Error retrieving events:", err);
+            log.error("Error retrieving events:", err);
             res.status(500).json({ error: "Unable to fetch events." });
         }
     }
@@ -109,7 +128,7 @@ export class EventService {
             const events = await Event.findAll();
             res.status(200).json(events);
         } catch (err) {
-            console.error("Error retrieving all events:", err);
+            log.error("Error retrieving all events:", err);
             res.status(500).json({ error: "Unable to fetch events." });
         }
     }
@@ -134,6 +153,7 @@ export class EventService {
 
             // Ensure the user is authorized to update this event
             if (event.createdBy.id !== userId) {
+                log.verbose("user attempted to make unauthorized event modifications", { userId: userId, event: event })
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 

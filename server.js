@@ -11,6 +11,7 @@ import { EventService } from './service/EventService.js';
 import { FlightService } from './service/FlightService.js';
 import { OrganizationService } from './service/OrganizationService.js';
 import { UserService } from './service/UserService.js';
+import { logger } from './service/LogService.mjs';
 
 const server = express();
 
@@ -36,5 +37,5 @@ new OrganizationService(apiRouter);
 new UserService(apiRouter);
 
 server.listen(process.env.server_port, () => {
-    console.log(`Server Starting on ${process.env.server_url} listening on port ${process.env.server_port}`);
+    logger.http(`Server Starting on ${process.env.server_url} listening on port ${process.env.server_port}`);
 });
