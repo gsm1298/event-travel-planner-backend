@@ -19,11 +19,26 @@ const logFormat = combine(
     json() //format as json for ease of parsing later
 );
 
+const whiteListVerbose = winston.format((info) => {
+    if(info.level != 'verbose'){
+        return false; //if not verbose return false
+    }
+    return info; //return only verbose
+});
+
+const verboseFormat = combine(
+    timestamp(),
+    errors({ stack: true }),
+    whiteListVerbose(),
+    json()
+);
+
 //logging configuration
 const customconfig = {
     transports: [ //where the outputs get sent to
         new transports.Console({ level: "http", format: consoleFormat }), //console output as formatted by the consoleFormat custom format
         new transports.File({ level: "silly", format: logFormat, filename: '../logs/standard.log' }), //log file output as formatted by the logFormat custom format
+        new transports.File({ level: "verbose", format: verboseFormat, filename: '../logs/audit.log' }) //log audit activities
     ],
     exceptionHandlers: [ //handle uncaught exceptions
         new transports.File({ filename: '../logs/exceptions.log' }) //sent to file

@@ -3,7 +3,13 @@
 import { DB } from './DB.js'
 import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
+import { logger } from '../service/LogService.mjs'
 //import { Event } from '../business/Event.js';
+
+// Init child logger instance
+const log = logger.child({
+    service : "UserDB", //specify module where logs are from
+});
 
 const baseUserQuery =
 `
@@ -71,13 +77,13 @@ export class UserDB extends DB {
                     } 
                     else {
                         // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
 
@@ -104,13 +110,13 @@ export class UserDB extends DB {
                     } 
                     else {
                         // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch(error) {
                 // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -144,13 +150,13 @@ export class UserDB extends DB {
                     }
                     else {
                         // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -182,13 +188,13 @@ export class UserDB extends DB {
                     }
                     else {
                         // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -218,13 +224,13 @@ export class UserDB extends DB {
                     }
                     else {
                         // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -255,13 +261,13 @@ export class UserDB extends DB {
                     }
                     else {
                         // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -296,13 +302,13 @@ export class UserDB extends DB {
                     }
                     else {
                         // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
                 // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
