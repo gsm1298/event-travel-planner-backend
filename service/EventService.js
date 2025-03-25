@@ -1,6 +1,7 @@
 import express from 'express';
 import { Event } from '../business/Event.js'; // Event model
 import { AuthService } from './AuthService.js'; // Assuming you already have the AuthService
+import Joi from 'joi';
 
 export class EventService {
     /**
@@ -28,17 +29,38 @@ export class EventService {
      */
     async createEvent(req, res) {
         try {
+            // Joi schema for validation
+            const schema = Joi.object({
+                name: Joi.string().required(),
+                destinationCode: Joi.string().required(),
+                startDate: Joi.date().required(),
+                endDate: Joi.date().required(),
+                financeMan: Joi.object({id: Joi.number().integer().required()}).required(),
+                description: Joi.string().optional(),
+                pictureLink: Joi.string().uri().optional(),
+                maxBudget: Joi.number().positive().required(),
+                autoApprove: Joi.boolean().optional(),
+                autoApproveThreshold: Joi.number().positive().optional()
+            });
+
+            // Validate request body
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             // Use data from the request body and authenticated user
-            const { name, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget } = req.body;
-            const userId = res.locals.user.id;  // user ID from authenticator middleware
+            const { name, destinationCode, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget, autoApprove, autoApproveThreshold } = req.body;
+            const user = res.locals.user;  // user from authenticator middleware
             const userOrg = res.locals.user.org;  // user organization from authenticator middleware
             const currentBudget = maxBudget;
 
             // Create the event
             const newEvent = new Event(
                 null,  // ID will be auto-generated
-                name,
-                userId,  // createdBy will be the current user
+                name, 
+                destinationCode,
+                user,  // createdBy will be the current user
                 financeMan,
                 startDate,
                 endDate,
@@ -47,7 +69,9 @@ export class EventService {
                 description,
                 pictureLink,
                 maxBudget,
-                currentBudget
+                currentBudget,
+                autoApprove,
+                autoApproveThreshold
             );
             
             // Save event to the database
@@ -122,9 +146,28 @@ export class EventService {
      */
     async updateEvent(req, res) {
         try {
+            const schema = Joi.object({
+                name: Joi.string().optional(),
+                destinationCode: Joi.string().optional(),
+                startDate: Joi.date().optional(),
+                endDate: Joi.date().optional(),
+                financeMan: Joi.object({id: Joi.number().integer().required()}).optional(),
+                description: Joi.string().optional(),
+                pictureLink: Joi.string().uri().optional(),
+                maxBudget: Joi.number().positive().optional(),
+                autoApprove: Joi.boolean().optional(),
+                autoApproveThreshold: Joi.number().positive().optional()
+            });
+
+            // Validate request body
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             const eventId = req.params.id;
             const eventData = req.body;
-            const userId = res.locals.user.id;  // user ID from authenticator middleware
+            const user = res.locals.user;  // user from authenticator middleware
 
             // Retrieve the event by ID
             const event = await Event.findById(eventId);
@@ -133,7 +176,7 @@ export class EventService {
             }
 
             // Ensure the user is authorized to update this event
-            if (event.createdBy.id !== userId) {
+            if (event.createdBy.id !== user.id) {
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
