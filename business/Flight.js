@@ -1,4 +1,10 @@
 import { FlightDB } from "../data_access/FlightDB.js";
+import { logger } from '../service/LogService.mjs'
+
+// Init child logger instance
+const log = logger.child({
+    business : "Flight", //specify module where logs are from
+});
 
 /**
  * @Class Flight
@@ -58,8 +64,8 @@ export class Flight {
                 return id;
             }
         } catch (error) {
-            console.error(error);
-            throw new Error("Error attempting to insert/save event");
+            log.error(error);
+            log.error(newError("Error attempting to insert/save event"));
         }
 
     }
@@ -75,8 +81,8 @@ export class Flight {
         try {
             return await db.getAllFlightsForEvent(eventID);
         } catch(error) {
-            console.error(error);
-            throw new Error("Error grabbing flights by event ID");
+            log.error(error);
+            log.error(newError("Error grabbing flights by event ID"));
         } finally {
             db.close();
         }

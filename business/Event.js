@@ -77,8 +77,8 @@ export class Event {
             return await db.readEvent(eventId);
         } catch(error) {
             // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to find event by id");
+            log.error(error);
+            log.error(new Error("Error trying to find event by id"));
        } finally {
             db.close();
         }
@@ -99,19 +99,21 @@ export class Event {
             switch(userRole) {
                 case "Attendee":
                     eventsData = await db.getEventsForAttendee(userId);
+                    log.verbose("event retireved by attendee", { userId: userId });
                     break;
                 case "Event Planner":
                     eventsData = await db.getEventsCreatedByUser(userId);
+                    log.verbose("event retireved by event planner", { userId: userId });
                     break;
                 case "Finance Manager":
                     eventsData = await db.getEventsForFinanceManager(userId);
+                    log.verbose("event retireved by finance manager", { userId: userId });
                     break;
             }
             return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to get events");
+            log.error(error);
+            log.error(new Error("Error trying to get events"));
        } finally {
             db.close();
         }
@@ -129,9 +131,8 @@ export class Event {
             const eventsData = await db.getAllEvents();
             return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to find all events");
+            log.error(error);
+            log.error(new Error("Error trying to find all events"));
        } finally {
             db.close();
         }
@@ -146,11 +147,11 @@ export class Event {
     static async delete(eventId) {
         const db = new EventDB();
         try {
+            log.verbose("event deleted", { eventId: eventId });
             return await db.deleteEvent(eventId);
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to delete event");
+            log.error(error);
+            log.error(new Error("Error trying to delete event"));
        } finally {
             db.close();
         }

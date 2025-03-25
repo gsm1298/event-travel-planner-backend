@@ -1,4 +1,10 @@
 import { OrganizationDB } from "../data_access/OrganizationDB.js";
+import { logger } from '../service/LogService.mjs'
+
+// Init child logger instance
+const log = logger.child({
+    business : "Organizaiton", //specify module where logs are from
+});
 
 /**
  * @Class Organization
@@ -35,9 +41,8 @@ export class Organization {
                 return null;
             }
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to get org by id");
+            log.error(error);
+            log.error(new Error("Error trying to get org by id"));
         } finally { db.close(); }
     }
 
@@ -59,9 +64,8 @@ export class Organization {
             } 
             else { return null; }
         } catch (error) {
-             // TODO - Log error
-             console.error(error);
-             throw new Error("Error trying to get orgs");
+             log.error(error);
+             log.error(new Error("Error trying to get orgs"));
         } finally { db.close(); }
     }
 
@@ -77,7 +81,7 @@ export class Organization {
         try {
             if (this.id != null) {
                 const updateOrg = await db.UpdateOrganization(this);
-
+                log.verbose("organization updated / saved", { orgId: this.id }); // audit logging from within the org js constructor file.
                 //Check if Organization was successfully updated
                 if (updateOrg) { return this; }
                 else { return null; }
@@ -90,9 +94,8 @@ export class Organization {
                 else { return null; }
             }
         } catch (error) {
-             // TODO - Log error
-             console.error(error);
-             throw new Error("Error trying save org");
+             log.error(error);
+             log.error(new Error("Error trying save org"));
         } finally { db.close(); }
     }
 }
