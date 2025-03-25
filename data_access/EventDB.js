@@ -39,7 +39,7 @@ export class EventDB extends DB {
         return new Promise((resolve, reject) => {
             try {
                 const query = `
-                    INSERT INTO event (name, destination_code created_by, finance_man, start_date, end_date, org_id, invite_link, description, picture_link, max_budget, current_budget, auto_approve, autoapprove_threshold)
+                    INSERT INTO event (name, destination_code created_by, finance_man, start_date, end_date, org_id, invite_link, description, picture_link, max_budget, current_budget, autoapprove, autoapprove_threshold)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
                 const params = [event.name, event.destinationCode, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold];
@@ -127,7 +127,7 @@ export class EventDB extends DB {
             try{
                 const query = `
                     UPDATE event
-                    SET name = ?, destination_code = ? created_by = ?, finance_man = ?, start_date = ?, end_date = ?, org_id = ?, invite_link = ?, description = ?, picture_link = ?, max_budget = ?, current_budget = ?, auto_approve = ?, autoapprove_threshold = ?
+                    SET name = ?, destination_code = ? created_by = ?, finance_man = ?, start_date = ?, end_date = ?, org_id = ?, invite_link = ?, description = ?, picture_link = ?, max_budget = ?, current_budget = ?, autoapprove = ?, autoapprove_threshold = ?
                     WHERE event_id = ?
                 `;
                 const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold, event.id];
