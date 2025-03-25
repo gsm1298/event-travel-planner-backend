@@ -1,6 +1,12 @@
 import express from 'express';
 import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
+import { logger } from '../service/LogService.mjs'
+
+// Init child logger instance
+const log = logger.child({
+    service : "organizationService", //specify module where logs are from
+});
 
 export class OrganizationService {
     /**
@@ -32,6 +38,7 @@ export class OrganizationService {
             const createdOrg = await newOrg.save();
 
             if (createdOrg) {
+                log.verbose("New org created", { orgName: name });
                 res.status(201).json({ message: "Organization created successfully", createdOrg });
             }
             else {
@@ -55,7 +62,7 @@ export class OrganizationService {
                 res.status(404).json({ message: "Organization not found" });
             }
         } catch (err) {
-            console.error("Error at Get Organization by ID:  ", err);
+            log.error("Error at Get Organization by ID:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }
@@ -67,7 +74,7 @@ export class OrganizationService {
             if (orgs) { res.status(200).json(orgs); }
             else { res.status(404).json({ message: "No Organizations found" }); }
         } catch (err) {
-            console.error("Error at Get All Organizations:  ", err);
+            log.error("Error at Get All Organizations:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }
@@ -91,11 +98,12 @@ export class OrganizationService {
             // Update Org in DB
             const updatedOrg = await org.save();
             if (updatedOrg) {
+                log.verbose("orOrganization updated successfullygin", { orgName: updatedOrg });
                 res.status(200).json({ message: "Organization updated successfully", updatedOrg });
             }
             else { res.status(500).json({ error: "Unable to update Organization." }); }
         } catch (err) {
-            console.error("Error at Update Organization:  ", err);
+            log.error("Error at Update Organization:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }
@@ -112,7 +120,7 @@ export class OrganizationService {
                 res.status(404).json({ message: "No users found in Organization" });
             }
         } catch (err) {
-            console.error("Error at Get Users in Organization:  ", err);
+            log.error("Error at Get Users in Organization:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }

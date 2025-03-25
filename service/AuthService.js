@@ -11,7 +11,7 @@ dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')
 
 // Init child logger instance
 const log = logger.child({
-    service : "Auth", //specify module where logs are from
+    service : "authService", //specify module where logs are from
 });
 
 // Set jwtSecret from env file

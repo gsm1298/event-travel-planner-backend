@@ -5,7 +5,7 @@ import { logger } from '../service/LogService.mjs'; // logging
 
 // Init child logger instance
 const log = logger.child({
-    service : "Event", //specify module where logs are from
+    service : "eventService", //specify module where logs are from
 });
 export class EventService {
     /**
@@ -163,13 +163,15 @@ export class EventService {
             var success = await event.save();  // Save updated event
 
             if (success) {
+                log.verbose("Event updated successfully", { userId: userId, event: event, eventData: eventData });
                 res.status(200).json({ message: "Event updated successfully" });
             }
             else {
+                log.verbose("Could not update event", { userId: userId, event: event, eventData: eventData });
                 res.status(500).json({ message: "Could not update event" });
             }
         } catch (err) {
-            console.error("Error updating event:", err);
+            log.error("Error updating event:", err);
             res.status(500).json({ error: "Unable to update event." });
         }
     }
@@ -193,13 +195,15 @@ export class EventService {
 
             // Ensure the user is authorized to delete this event
             if (event.createdBy !== userId) {
+                log.verbose("Unauthorized user attempt to delete event", { userId: userId, event: event })
                 return res.status(403).json({ message: "Unauthorized: You cannot delete this event" });
             }
 
             await Event.delete(eventId);  // Delete the event from the database
+            log.verbose("Authorized user deleted event", { userId: userId, event: event })
             res.status(200).json({ message: "Event deleted successfully" });
         } catch (err) {
-            console.error("Error deleting event:", err);
+            log.error("Error deleting event:", err);
             res.status(500).json({ error: "Unable to delete event." });
         }
     }

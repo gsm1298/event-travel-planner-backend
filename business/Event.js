@@ -1,6 +1,12 @@
 import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
 import { EventDB } from '../data_access/EventDB.js';
+import { logger } from '../service/LogService.mjs'
+
+// Init child logger instance
+const log = logger.child({
+    business : "Event", //specify module where logs are from
+});
 
 /**
  * @Class Event
@@ -54,9 +60,8 @@ export class Event {
                 return eventId;
             }
         } catch(error) {
-             // TODO - Log error
-             console.error(error);
-             throw new Error("Error trying to save event");
+             log.error(error);
+             log.error(new Error("Error trying to save event"));
         } finally { db.close(); }
     }
 
