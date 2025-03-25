@@ -43,11 +43,11 @@ export class UserService {
     /** @type {express.RequestHandler} */
     async updateUser(req, res) {
         try {
-            const { firstName, lastName, email, phoneNum, gender, title, profilePic, password = null } = req.body;
+            const { firstName, lastName, email, phoneNum, gender, title, dob, profilePic, password = null } = req.body;
             const userId = req.params.id
 
             // Retrieve the Organization by ID
-            const user = await User.getUserById(userId);
+            const user = await User.GetUserById(userId);
             if (!user) { return res.status(404).json({ message: "User not found" }); }
 
             // Update User Object fields
@@ -57,6 +57,7 @@ export class UserService {
             user.phoneNum = phoneNum;
             user.gender = gender;
             user.title = title;
+            user.dob = dob;
             user.profilePic = profilePic;
             user.hashedPass = password ? await User.hashPass(password) : user.hashedPass;
 

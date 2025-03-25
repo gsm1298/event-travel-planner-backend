@@ -9,13 +9,13 @@ import { Event } from '../business/Event.js';
 const baseEventQuery =
 `
     SELECT
-        event.event_id, event.name, 
+        event.event_id, event.name, event.destination_code,
         creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
         finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
         finance.email AS 'finance_man_email', finance.phone_num AS 'finance_man_phone_num', finance.profile_picture AS 'finance_man_profile_pic',
         event.start_date, event.end_date,
         organization.name AS 'org_name', event.org_id,
-        event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget,
+        event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget, event.auto_approve, event.autoapprove_threshold,
         event.created, event.last_edited
     FROM event
         LEFT JOIN organization ON event.org_id = organization.org_id
@@ -39,9 +39,10 @@ export class EventDB extends DB {
         return new Promise((resolve, reject) => {
             try {
                 const query = `
-                    INSERT INTO event (name, created_by, finance_man, start_date, end_date, org_id, invite_link, description, picture_link, max_budget, current_budget)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-                const params = [event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget];
+                    INSERT INTO event (name, destination_code created_by, finance_man, start_date, end_date, org_id, invite_link, description, picture_link, max_budget, current_budget, auto_approve, autoapprove_threshold)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `;
+                const params = [event.name, event.destinationCode, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold];
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
@@ -82,6 +83,7 @@ export class EventDB extends DB {
                             resolve(new Event(
                                 row.event_id,
                                 row.name,
+                                row.destination_code,
                                 new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
                                 new User(
                                     row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name,
@@ -94,7 +96,10 @@ export class EventDB extends DB {
                                 row.description,
                                 row.picture_link,
                                 row.max_budget,
-                                row.current_budget));
+                                row.current_budget,
+                                Boolean(row.autoapprove.readUIntLE(0, 1)),
+                                row.autoapprove_threshold
+                            ));
                         } 
                         else { resolve(null); }
                     } 
@@ -122,9 +127,10 @@ export class EventDB extends DB {
             try{
                 const query = `
                     UPDATE event
-                    SET name = ?, created_by = ?, finance_man = ?, start_date = ?, end_date = ?, org_id = ?, invite_link = ?, description = ?, picture_link = ?, max_budget = ?, current_budget = ?
-                    WHERE event_id = ?`;
-                const params = [event.name, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.id];
+                    SET name = ?, destination_code = ? created_by = ?, finance_man = ?, start_date = ?, end_date = ?, org_id = ?, invite_link = ?, description = ?, picture_link = ?, max_budget = ?, current_budget = ?, auto_approve = ?, autoapprove_threshold = ?
+                    WHERE event_id = ?
+                `;
+                const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold, event.id];
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
@@ -187,6 +193,7 @@ export class EventDB extends DB {
                          const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
+                            row.destination_code,
                             new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
                             new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
                             row.start_date,
@@ -196,7 +203,9 @@ export class EventDB extends DB {
                             row.description,
                             row.picture_link,
                             row.max_budget,
-                            row.current_budget
+                            row.current_budget,
+                            Boolean(row.autoapprove.readUIntLE(0, 1)),
+                            row.autoapprove_threshold
                         ));
                         
                         resolve(events);
@@ -235,6 +244,7 @@ export class EventDB extends DB {
                          const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
+                            row.destination_code,
                             new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
                             new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
                             row.start_date,
@@ -244,7 +254,9 @@ export class EventDB extends DB {
                             row.description,
                             row.picture_link,
                             row.max_budget,
-                            row.current_budget
+                            row.current_budget,
+                            Boolean(row.autoapprove.readUIntLE(0, 1)),
+                            row.autoapprove_threshold
                         ));
                         
                         resolve(events);
@@ -279,6 +291,7 @@ export class EventDB extends DB {
                          const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
+                            row.destination_code,
                             new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
                             new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
                             row.start_date,
@@ -288,7 +301,9 @@ export class EventDB extends DB {
                             row.description,
                             row.picture_link,
                             row.max_budget,
-                            row.current_budget
+                            row.current_budget,
+                            Boolean(row.autoapprove.readUIntLE(0, 1)),
+                            row.autoapprove_threshold
                         ));
                         
                         resolve(events);
@@ -323,6 +338,7 @@ export class EventDB extends DB {
                          const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
+                            row.destination_code,
                             new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
                             new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
                             row.start_date,
@@ -332,7 +348,9 @@ export class EventDB extends DB {
                             row.description,
                             row.picture_link,
                             row.max_budget,
-                            row.current_budget
+                            row.current_budget,
+                            Boolean(row.autoapprove.readUIntLE(0, 1)),
+                            row.autoapprove_threshold
                         ));
                         
                         resolve(events);

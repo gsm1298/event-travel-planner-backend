@@ -10,6 +10,7 @@ export class Event {
      * @constructor
      * @param {Integer} id
      * @param {String} name
+     * @param {String} destinationCode
      * @param {User} createdBy
      * @param {User} financeMan
      * @param {Date} startDate
@@ -20,11 +21,17 @@ export class Event {
      * @param {String} pictureLink
      * @param {Integer} maxBudget
      * @param {Integer} currentBudget
+     * @param {Boolean} autoApprove
+     * @param {Double} autoApproveThreshold
      */
 
-    constructor(id = null, name = null, createdBy = null, financeMan = null, startDate = null, endDate = null, org = null, inviteLink = null, description = null, pictureLink = null, maxBudget = null, currentBudget = null){
+    constructor(
+        id = null, name = null, destinationCode = null, createdBy = null, financeMan = null, startDate = null, endDate = null, org = null, 
+        inviteLink = null, description = null, pictureLink = null, maxBudget = null, currentBudget = null, autoApprove = null, autoApproveThreshold = null
+    ){
         this.id = id;
         this.name = name;
+        this.destinationCode = destinationCode;
         this.createdBy = createdBy;
         this.financeMan = financeMan;
         this.startDate = startDate;
@@ -35,6 +42,8 @@ export class Event {
         this.pictureLink = pictureLink;
         this.maxBudget = maxBudget;
         this.currentBudget = currentBudget;
+        this.autoApprove = autoApprove;
+        this.autoApproveThreshold = autoApproveThreshold;
     }
 
     /**
@@ -102,7 +111,10 @@ export class Event {
                     eventsData = await db.getEventsForFinanceManager(userId);
                     break;
             }
-            return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
+            return eventsData.map(event => new Event(
+                event.id, event.name, event.destinationCode, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, 
+                event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold
+            ));
         } catch(error) {
             // TODO - Log error
             console.error(error);
@@ -122,7 +134,10 @@ export class Event {
         try {
             // TODO: Check for permissions before returning all events, as events may be private/inaccessible to user.
             const eventsData = await db.getAllEvents();
-            return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
+            return eventsData.map(event => new Event(
+                event.id, event.name, event.destinationCode, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, 
+                event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold
+            ));
         } catch(error) {
             // TODO - Log error
             console.error(error);
