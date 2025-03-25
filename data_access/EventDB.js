@@ -15,7 +15,7 @@ const baseEventQuery =
         finance.email AS 'finance_man_email', finance.phone_num AS 'finance_man_phone_num', finance.profile_picture AS 'finance_man_profile_pic',
         event.start_date, event.end_date,
         organization.name AS 'org_name', event.org_id,
-        event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget, event.auto_approve, event.autoapprove_threshold,
+        event.invite_link, event.description, event.picture_link, event.max_budget, event.current_budget, event.autoapprove, event.autoapprove_threshold,
         event.created, event.last_edited
     FROM event
         LEFT JOIN organization ON event.org_id = organization.org_id
