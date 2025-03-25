@@ -1,5 +1,5 @@
 import { FlightDB } from "../data_access/FlightDB.js";
-import { logger } from '../service/LogService.mjs'
+import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({

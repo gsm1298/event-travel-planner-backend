@@ -1,5 +1,5 @@
 import { User } from "../business/User.js";
-import { logger } from '../service/LogService.mjs'
+import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({

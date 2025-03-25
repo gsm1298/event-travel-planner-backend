@@ -4,6 +4,12 @@ import { DB } from './DB.js'
 import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
 import { Event } from '../business/Event.js';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "eventDb", //specify module where logs are from
+});
 
 
 const baseEventQuery =
@@ -43,6 +49,8 @@ export class EventDB extends DB {
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
                 const params = [event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget];
 
+                log.verbose("event create request", { event: event.name, eventCreatedBy: event.createdBy }); // log event creation request
+
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
                         if (result.insertId > 0) {
@@ -51,14 +59,12 @@ export class EventDB extends DB {
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from createEvent", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from createEvent", error);
                 reject(error);
             }
 
@@ -99,14 +105,12 @@ export class EventDB extends DB {
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from readEvent", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from readEvent", error);
                 reject(error);
             }
         });
@@ -128,17 +132,16 @@ export class EventDB extends DB {
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
+                        log.verbose("event updated", { event: event.name, eventCreatedBy: event.createdBy }); // audit log the update request
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from updateEvent", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from updateEvent",error);
                 reject(error);
             }
         });
@@ -153,20 +156,19 @@ export class EventDB extends DB {
         return new Promise((resolve, reject) => {
             try {
                 const query = `DELETE FROM event WHERE event_id = ?`;
-                
+
                 this.con.query(query, [eventId], (err, result) => {
                     if (!err) {
+                        log.verbose("event deleted", { eventId: eventId }); // audit log the deletion request
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from deleteEvent", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from deleteEvent", error);
                 reject(error);
             }
         });
@@ -202,14 +204,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getAllEvents", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getAllEvents", error);
                 reject(error);
             }
         });
@@ -250,14 +250,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getEventsForAttendee", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getEventsForAttendee", error);
                 reject(error);
             }
         });
@@ -294,14 +292,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getEventsCreatedByUser", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getEventsCreatedByUser", error);
                 reject(error);
             }
         });
@@ -338,14 +334,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getEventsForFinanceManager", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getEventsForFinanceManager",error);
                 reject(error);
             }
         });

@@ -1,5 +1,5 @@
 import { OrganizationDB } from "../data_access/OrganizationDB.js";
-import { logger } from '../service/LogService.mjs'
+import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({

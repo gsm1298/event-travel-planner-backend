@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import { User } from '../business/User.js';
-import { logger } from '../service/LogService.mjs'
+import { logger } from '../service/LogService.mjs';
 import nodemailer from 'nodemailer';
 import speakeasy from 'speakeasy';
 

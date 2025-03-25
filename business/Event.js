@@ -1,7 +1,7 @@
 import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
 import { EventDB } from '../data_access/EventDB.js';
-import { logger } from '../service/LogService.mjs'
+import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({

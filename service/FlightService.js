@@ -5,7 +5,7 @@ import { Duffel } from '@duffel/api';
 import zipcodes from 'zipcodes';
 import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
-import { logger } from '../service/LogService.mjs'
+import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({

@@ -2,7 +2,7 @@ import { Organization } from '../business/Organization.js';
 import { UserDB } from '../data_access/UserDB.js';
 import bcrypt from 'bcrypt';
 import speakeasy from 'speakeasy';
-import { logger } from '../service/LogService.mjs'
+import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({
