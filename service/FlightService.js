@@ -251,14 +251,24 @@ export class FlightService {
         var input = req.body;
 
         try {
-            var confirmation = await duffel.payments.create({
-                'order_id': input.id,
-                'payment': {
-                    'type': 'balance',
-                    'amount': input.price,
-                    'currency': 'USD'
-                }
-            })
+            var flight = await Flight.getFlight(input.flightID);
+            if(!flight) {
+                return res.status(404).json({ error: "Flight not found" });
+            }
+
+            // Payment Creation
+
+            // var confirmation = await duffel.payments.create({
+            //     'order_id': input.id,
+            //     'payment': {
+            //         'type': 'balance',
+            //         'amount': input.price,
+            //         'currency': 'USD'
+            //     }
+            // })
+
+            flight.status = 2; // Need to double check
+            flight.save();
 
             res.status(200).json({ success: 'Flight Booked' });
         } catch (error) {
