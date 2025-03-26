@@ -94,7 +94,7 @@ export class FlightService {
             var client_coords = zipcodes.lookup(input.zip);
 
             // Call to Amadeus to return list of closest airport codes
-            var airports = await findMajorAirports(client_coords.latitude, client_coords.longitude);
+            var airports = await this.findMajorAirports(client_coords.latitude, client_coords.longitude);
         } catch (err) {
             console.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
