@@ -5,6 +5,7 @@ import { Duffel } from '@duffel/api';
 import zipcodes from 'zipcodes';
 import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
+import Joi from 'joi';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -13,6 +14,8 @@ const duffel = new Duffel({
 })
 
 export class FlightService {
+    #amadeus_bearer = null;
+
     /**
      * @constructor
      * 
@@ -25,38 +28,73 @@ export class FlightService {
 
         app.post('/flights/booking', this.booking);
 
-        app.get('/flights/eventflights', this.getEventFlights);
+        app.get('/flights/eventflights/:id', this.getEventFlights);
     }
+
+    // Helper Functions ----------------------------------------------------------
+    parseSlice(slice) {
+        var parsed = [];
+
+        return parsed;
+    }
+
+    async genToken() {
+        await fetch ('https://test.api.amadeus.com/v1/security/oauth2/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: {
+                'client_id': '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
+                'client_secret': 'cU8Nbf9H15J4fGRv',
+                'grant_type': 'client_credentials'
+            }
+        }).then((Response) => Response.json())
+    }
+
+    async findMajorAirports(lat, long) {
+        const list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${lat}&longitude=${long}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + this.#amadeus_bearer
+            }
+        })
+
+        if(list.status == 401) {
+            this.genToken().then(this.findMajorAirports(lat,long));
+        } else if (list.status == 200) {
+            const parsed = await list.json();
+            return parsed.data[0].address.cityCode;
+        } else {
+            this.genToken().then(this.findMajorAirports(lat,long));
+        }
+    }
+
+
+    // Endpoints -----------------------------------------------------------------
 
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
+        const schema = Joi.object({
+            destination: Joi.string().length(3).required(),
+            zip: Joi.string().required(),
+            departure_date: Joi.string().isoDate().required()
+        });
+
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
         var input = req.body;
 
         try {
-            // Temp validation
-            if (input.destination.length != 3) {
-                return res.status(400).json({ error: "Invalid Flight Origin and/or Destination" });
-            };
-
             // Lookup client zip and get coords for Duffel call
             var client_coords = zipcodes.lookup(input.zip);
 
-            // Call to Duffel to return list of closest airport codes
-            var closest_airports = async () => {
-                const response = await fetch(`https://api.duffel.com/places/suggestions?lat=${client_coords.latitude}&lng=${client_coords.longitude}&rad=85000`, {
-                    method: 'GET',
-                    headers: {
-                        'Duffel-version': 'v2',
-                        'Authorization': 'Bearer ' + process.env.duffelToken
-                    }
-                })
-
-                const parsed = await response.json();
-                return parsed.data.map(airport => airport.iata_code)
-            }
-
-            var airports = await closest_airports();
+            // Call to Amadeus to return list of closest airport codes
+            var airports = await this.findMajorAirports(client_coords.latitude, client_coords.longitude);
         } catch (err) {
             console.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
@@ -138,6 +176,16 @@ export class FlightService {
     // Place Flight on Hold
     /**@type {express.RequestHandler} */
     async hold(req, res) {
+        const schema = Joi.object({
+            offerID: Joi.string().required(),
+            passID: Joi.string().required()
+        });
+
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
         var input = req.body;
         var user;
 
@@ -166,14 +214,17 @@ export class FlightService {
             })
 
             var data = {
-                id: confirmation.data.id,
-                offer_id: confirmation.data.offer_id,
-                total: confirmation.data.total_amount,
-                expiration: confirmation.data.payment_status.payment_required_by,
-                guarantee: confirmation.data.payment_status.price_guarantee_expires_at
+                id: confirmation.id,
+                offer_id: confirmation.offer_id,
+                total: confirmation.total_amount,
+                expiration: confirmation.payment_status.payment_required_by,
+                guarantee: confirmation.payment_status.price_guarantee_expires_at
             }
 
-            var newHold = Flight(null, res.locals.user.id, flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, flight.approved_by, flight.seat_num, flight.confirmation_code, flight.flight_number, data.id);
+            var newHold = Flight(null, res.locals.user.id, flight.price, flight.depart_time, 
+            flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, 
+            flight.approved_by, flight.seat_num, flight.confirmation_code, flight.flight_number, 
+            data.id);
             newHold.save();
 
             res.status(200).send(JSON.stringify(data));
@@ -187,17 +238,37 @@ export class FlightService {
     // Book Flight
     /**@type {express.RequestHandler} */
     async booking(req, res) {
+        const schema = Joi.object({
+            id: Joi.string().required(),
+            price: Joi.number().positive().required()
+        });
+
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
         var input = req.body;
 
         try {
-            var confirmation = await duffel.payments.create({
-                'order_id': input.id,
-                'payment': {
-                    'type': 'balance',
-                    'amount': input.price,
-                    'currency': 'USD'
-                }
-            })
+            var flight = await Flight.getFlight(input.flightID);
+            if(!flight) {
+                return res.status(404).json({ error: "Flight not found" });
+            }
+
+            // Payment Creation
+
+            // var confirmation = await duffel.payments.create({
+            //     'order_id': input.id,
+            //     'payment': {
+            //         'type': 'balance',
+            //         'amount': input.price,
+            //         'currency': 'USD'
+            //     }
+            // })
+
+            flight.status = 2; // Need to double check
+            flight.save();
 
             res.status(200).json({ success: 'Flight Booked' });
         } catch (error) {
@@ -211,7 +282,7 @@ export class FlightService {
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
         try {
-            const eventID = req.body.id;
+            const eventID = req.params.id;
             const flights = await Flight.getFlightsByEvent(eventID);
             if(flights) {
                 res.status(200).json(flights);
