@@ -51,6 +51,14 @@ export class Flight {
         const db = new FlightDB();
         try {
             if(this.flight_id) {
+                const current = await db.getFlight(this.flight_id);
+
+                for(var prop in this) {
+                    if(this[prop] == null) {
+                        this[prop] = current[prop];
+                    }
+                }
+                
                 const ret = await db.updateFlight(this);
                 return ret ? this.id : null;
             } else {

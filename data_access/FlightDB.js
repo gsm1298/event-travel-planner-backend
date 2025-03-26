@@ -95,6 +95,40 @@ export class FlightDB extends DB {
     }
 
     /**
+     * Get Flight by ID
+     * @param {Integer} flightID
+     * @returns {Promise<Flight>} Flight OBJ
+     */
+    getFlight(flightID) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = baseEventQuery + `WHERE flight_id = ?;`;
+
+                this.con.query(query, [flightID], (error, result) => {
+                    if(!error) {
+                        if(result.length > 0) {
+                            var row = result[0];
+                            resolve(
+                                new Flight(
+                                    row.flight_id, row.attendee_id, row.price, row.depart_time,
+                                    row.depart_loc, row.arrive_time, row.arrive_loc, row.status,
+                                    row.approved_by, row.seat_num, row.seat_letter, row.confirmation_code,
+                                    row.flight_number, row.order_id
+                                )
+                            );
+                        } else {
+                            resolve(null);
+                        }
+                    }
+                })
+            } catch (error) {
+                console.error(error);
+                reject(error);
+            }
+        })
+    }
+
+    /**
      * Pull Flights for Event (Financial Use)
      * @param {Integer} eventID
      * @returns {Promise<Flight[]>} Array of Flight Objects
