@@ -67,6 +67,39 @@ export class EventDB extends DB {
     }
 
     /**
+     * Add attendees to an event in the database
+     * @param {Integer} eventId
+     * @param {User[]} attendees
+     * @returns {Promise<Boolean>} True if attendees were added successfully
+     */
+    addAttendeesToEvent(eventId, attendees) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = `
+                    INSERT INTO attendee (event_id, user_id)
+                    VALUES ?
+                `;
+                const values = attendees.map(attendee => [eventId, attendee.id]);
+
+                this.con.query(query, [values], (err, result) => {
+                    if (!err) {
+                        resolve(result.affectedRows > 0);
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch (error) {
+                // TODO - error logging
+                console.error(error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
      * Read an event from the database by ID
      * @param {Integer} eventId
      * @returns {Promise<Event|null>} The event object or null if not found

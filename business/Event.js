@@ -70,6 +70,23 @@ export class Event {
     }
 
     /**
+     * Add attendees to the event
+     * @param {Array} attendees
+     * @returns {Promise<void>}
+     * @throws {Error}
+     */
+    async addAttendees(attendees) {
+        const db = new EventDB();
+        try {
+            await db.addAttendeesToEvent(this.id, attendees);
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to add attendees to event");
+        } finally { db.close(); }
+    }
+
+    /**
      * Find an event by ID
      * @param {Integer} eventId
      * @returns {Promise<Event|null>}

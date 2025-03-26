@@ -40,7 +40,8 @@ export class EventService {
                 pictureLink: Joi.string().uri().optional(),
                 maxBudget: Joi.number().positive().required(),
                 autoApprove: Joi.boolean().optional(),
-                autoApproveThreshold: Joi.number().positive().optional()
+                autoApproveThreshold: Joi.number().positive().optional(),
+                attendees: Joi.array().items(Joi.object({id: Joi.number().integer().required()})).optional()
             });
 
             // Validate request body
@@ -76,6 +77,11 @@ export class EventService {
             
             // Save event to the database
             const eventId = await newEvent.save();
+
+            // Add attendees to the event
+            if (req.body.attendees) {
+                await newEvent.addAttendees(req.body.attendees);
+            }
             
             // Respond with the created event ID
             res.status(201).json({ message: "Event created successfully", eventId });
