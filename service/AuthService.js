@@ -3,25 +3,13 @@ import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import { User } from '../business/User.js';
-import nodemailer from 'nodemailer';
-import speakeasy from 'speakeasy';
+import { Email } from '../business/Email.js';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
 // Set jwtSecret from env file
 const jwtSecret = process.env.jwtSecret;
 
-// Init Nodemailer Transporter
-const transporter = nodemailer.createTransport({
-    host: process.env.smtphost,
-    port: process.env.smtpport,
-    secure: false, // use SSL
-    auth: {
-      user: process.env.smtpuser,
-      pass: process.env.smtppass
-    }
-  });
-  
 
 
 export class AuthService {
@@ -74,25 +62,15 @@ export class AuthService {
 
                 const otp = await user.GenerateToken(); // Generate a new token for the user
 
-                const mailOptions = {
-                    from: 'no-reply@jlabupch.uk',
-                    to: user.email,
-                    subject: 'Your Two-Factor Authentication Code',
-                    text: 'Your verification code is: ' + otp // Replace with the actual 2FA code
-                };
+                // Create an email object. From, to, subject, text
+                const email = new Email('no-reply@jlabupch.uk', user.email, 'Your Two-Factor Authentication Code', 'Your verification code is: ' + otp);
                 
                 // Send the email
-                transporter.sendMail(mailOptions, function(error, info){
-                    if (error) {
-                    console.log("Error:" +  error);
-                    return res.status(500).json({ error: "Error sending email." });
-                    } else {
-                    console.log('Email sent: ' + info.response);
-                    //return res.status(200).json({ response: "2FA Code Sent to email." });
-                    var token = jwt.sign({ response: "2FA Code Sent to email." }, jwtSecret, { expiresIn: '5m' });
-                    return res.status(200).cookie("temp", token, {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain}).json({ response: "2FA Code Sent to email." });
-                    }
-                });
+                await email.sendEmail();
+
+                //Create a temporary token to send to the user
+                var token = jwt.sign({ response: "2FA Code Sent to email." }, jwtSecret, { expiresIn: '5m' });
+                return res.status(200).cookie("temp", token, {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain}).json({ response: "2FA Code Sent to email." });
 
                 }
 
