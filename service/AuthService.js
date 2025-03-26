@@ -170,7 +170,7 @@ export class AuthService {
                 };
 
                 // Set the session
-                var token = jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '30m' });
+                var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
                 return res.status(200).cookie("jwt", token, {httpOnly: false, secure: true, same_site: "none", domain: process.env.domain})
                 .cookie("temp", "", { maxAge: 1 }).json({ user: userData });
             }
