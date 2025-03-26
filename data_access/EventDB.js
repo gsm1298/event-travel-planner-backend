@@ -42,7 +42,7 @@ export class EventDB extends DB {
                     INSERT INTO event (name, destination_code, created_by, finance_man, start_date, end_date, org_id, invite_link, description, picture_link, max_budget, current_budget, autoapprove, autoapprove_threshold)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
-                const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold];
+                const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold];
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
