@@ -214,11 +214,11 @@ export class FlightService {
             })
 
             var data = {
-                id: confirmation.data.id,
-                offer_id: confirmation.data.offer_id,
-                total: confirmation.data.total_amount,
-                expiration: confirmation.data.payment_status.payment_required_by,
-                guarantee: confirmation.data.payment_status.price_guarantee_expires_at
+                id: confirmation.id,
+                offer_id: confirmation.offer_id,
+                total: confirmation.total_amount,
+                expiration: confirmation.payment_status.payment_required_by,
+                guarantee: confirmation.payment_status.price_guarantee_expires_at
             }
 
             var newHold = Flight(null, res.locals.user.id, flight.price, flight.depart_time, 
