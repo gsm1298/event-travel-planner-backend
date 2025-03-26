@@ -126,7 +126,7 @@ export class UserDB extends DB {
                                     row.user_id, row.first_name, row.last_name, row.email,
                                     row.phone_num, row.gender, row.title, row.profile_picture,
                                     new Organization(row.org_id, row.org_name),
-                                    row.role_name, row.hashed_password, JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.dob
+                                    row.role_name, row.hashed_password, JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.date_of_birth
                                 )
                             );
                             
@@ -166,7 +166,7 @@ export class UserDB extends DB {
                                     row.phone_num, row.gender, row.title, row.profile_picture,
                                     new Organization(row.org_id, row.org_name),
                                     row.role_name, row.hashed_password, 
-                                    JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.dob
+                                    JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.date_of_birth
                                 )
                             );
                         }
@@ -202,7 +202,7 @@ export class UserDB extends DB {
                                 row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
                                 row.role_name, row.hashed_password,
-                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.dob
+                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.date_of_birth
                             )
                             );
                             resolve(users);
@@ -240,7 +240,7 @@ export class UserDB extends DB {
                                 row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
                                 row.role_name, row.hashed_password,
-                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.dob
+                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.date_of_birth
                             )
                             );
                             resolve(users);
@@ -282,7 +282,7 @@ export class UserDB extends DB {
                                 row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
                                 row.role_name, row.hashed_password,
-                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.dob
+                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled.readUIntLE(0, 1)), row.date_of_birth
                             )
                             );
                             resolve(users);
