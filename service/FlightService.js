@@ -5,6 +5,7 @@ import { Duffel } from '@duffel/api';
 import zipcodes from 'zipcodes';
 import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
+import Joi from 'joi';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -27,7 +28,7 @@ export class FlightService {
 
         app.post('/flights/booking', this.booking);
 
-        app.get('/flights/eventflights', this.getEventFlights);
+        app.get('/flights/eventflights/:id', this.getEventFlights);
     }
 
     // Helper Functions ----------------------------------------------------------
@@ -75,6 +76,17 @@ export class FlightService {
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
+        const schema = Joi.object({
+            destination: Joi.string().length(3).required(),
+            zip: Joi.string().required(),
+            departure_date: Joi.string().isoDate().required()
+        });
+
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
         var input = req.body;
 
         try {
@@ -164,6 +176,16 @@ export class FlightService {
     // Place Flight on Hold
     /**@type {express.RequestHandler} */
     async hold(req, res) {
+        const schema = Joi.object({
+            offerID: Joi.string().required(),
+            passID: Joi.string().required()
+        });
+
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
         var input = req.body;
         var user;
 
@@ -216,6 +238,16 @@ export class FlightService {
     // Book Flight
     /**@type {express.RequestHandler} */
     async booking(req, res) {
+        const schema = Joi.object({
+            id: Joi.string().required(),
+            price: Joi.number().positive().required()
+        });
+
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
+
         var input = req.body;
 
         try {
@@ -240,7 +272,7 @@ export class FlightService {
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
         try {
-            const eventID = req.query.id;
+            const eventID = req.params.id;
             const flights = await Flight.getFlightsByEvent(eventID);
             if(flights) {
                 res.status(200).json(flights);

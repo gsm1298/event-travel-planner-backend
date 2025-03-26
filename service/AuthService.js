@@ -4,7 +4,7 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import { User } from '../business/User.js';
 import nodemailer from 'nodemailer';
-import speakeasy from 'speakeasy';
+import Joi from 'joi';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -42,7 +42,17 @@ export class AuthService {
 
     /** @type {express.RequestHandler} */
     async login(req, res) {
-        try{ 
+        try {
+            // Validate request body
+            const schema = Joi.object({
+                email: Joi.string().email().required(),
+                password: Joi.string().required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             var input = req.body;
             // TODO - validate req schema
 
@@ -105,8 +115,17 @@ export class AuthService {
     }
 
     async mfa(req, res) {
+        try {
+            // Validate request body
+            const schema = Joi.object({
+                email: Joi.string().email().required(),
+                mfaCode: Joi.string().required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
 
-        try{
             const token = req.cookies.temp; // Use the temporary token set during login
             if (!token) {
                 return res.status(401).json({ error: "Not authenticated" });
@@ -151,7 +170,7 @@ export class AuthService {
                 };
 
                 // Set the session
-                var token = jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '30m' });
+                var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
                 return res.status(200).cookie("jwt", token, {httpOnly: false, secure: true, same_site: "none", domain: process.env.domain})
                 .cookie("temp", "", { maxAge: 1 }).json({ user: userData });
             }
