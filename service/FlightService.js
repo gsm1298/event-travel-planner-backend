@@ -4,6 +4,7 @@ import path from 'path';
 import { Duffel } from '@duffel/api';
 import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
+import { Util } from '../business/Util.js';
 import Joi from 'joi';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
@@ -13,8 +14,6 @@ const duffel = new Duffel({
 })
 
 export class FlightService {
-    #amadeus_bearer = 'czob1NpO1JsFwGkGhPBcPvtmbFdY';
-
     /**
      * @constructor
      * 
@@ -30,52 +29,16 @@ export class FlightService {
         app.get('/flights/eventflights/:id', this.getEventFlights);
     }
 
-    // Helper Functions ----------------------------------------------------------
-    parseSlice(slice) {
-        var parsed = [1];
-
-        return parsed;
-    }
-
-    async genToken() {
-        await fetch ('https://test.api.amadeus.com/v1/security/oauth2/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: {
-                'client_id': '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
-                'client_secret': 'cU8Nbf9H15J4fGRv',
-                'grant_type': 'client_credentials'
-            }
-        }).then((Response) => Response.json())
-    }
-
-    // async findMajorAirports(lat, long) {
-    //     const list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${lat}&longitude=${long}`, {
-    //         method: 'GET',
-    //         headers: {
-    //             'Authorization': 'Bearer ' + this.#amadeus_bearer
-    //         }
-    //     })
-
-    //     if(list.status == 401) {
-    //         this.genToken().then(this.findMajorAirports(lat,long));
-    //     } else if (list.status == 200) {
-    //         const parsed = await list.json();
-    //         return parsed.data[0].address.cityCode;
-    //     } else {
-    //         this.genToken().then(this.findMajorAirports(lat,long));
-    //     }
-    // }
-
 
     // Endpoints -----------------------------------------------------------------
 
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
+        var amadeus_bearer = 'czob1NpO1JsFwGkGhPBcPvtmbFdY';
+        var input = req.body;
         var origin_airport;
+        var list;
 
         // const schema = Joi.object({
         //     lat: Joi.float().required(),
@@ -88,30 +51,37 @@ export class FlightService {
         //     return res.status(400).json({ error: error.details[0].message });
         // }
 
-        var input = req.body;
 
         try {
             // Call to Amadeus to return list of closest airport codes
-            origin_airport = async () => {
-                const list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${lat}&longitude=${long}`, {
+            list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${input.lat}&longitude=${input.long}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + amadeus_bearer
+                }
+            })
+    
+            if(list.status == 401) {
+                var token = await Util.gen_token();
+                amadeus_bearer = token.access_token;
+                list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${input.lat}&longitude=${input.long}`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': 'Bearer ' + this.#amadeus_bearer
+                        'Authorization': 'Bearer ' + amadeus_bearer
                     }
                 })
-        
-                if(list.status == 401) {
-                    this.genToken().then(this.findMajorAirports(lat,long));
-                } else if (list.status == 200) {
-                    const parsed = await list.json();
-                    return parsed.data[0].address.cityCode;
-                }
+            }
+            
+            if (list.status == 200) {
+                const parsed = await list.json();
+                origin_airport = parsed.data[0].address.cityCode;
+            } else {
+                return res.status(401).json({ error: "Amadeus Auth Error" });
             }
         } catch (err) {
             console.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
         }
-
 
         // Instantiate offers before the try/catch block for scoping
         var offers;
@@ -121,7 +91,7 @@ export class FlightService {
             offers = await duffel.offerRequests.create({
                 slices: [
                     {
-                        origin: 'ROC', // Defaulting origin to closest city
+                        origin: origin_airport,
                         destination: input.destination,
                         departure_date: input.departure_date
                     }
@@ -135,8 +105,6 @@ export class FlightService {
             });
 
             var data = [];
-
-            data.push(airports);
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
