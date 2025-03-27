@@ -3,6 +3,7 @@ import { Event } from '../business/Event.js'; // Event model
 import { User } from '../business/User.js'; // User model
 import { AuthService } from './AuthService.js'; // Assuming you already have the AuthService
 import Joi from 'joi';
+import { Email } from '../business/Email.js';
 
 export class EventService {
     /**
@@ -256,6 +257,11 @@ export class EventService {
             if (success && updatedBudget) {
                 // Update the event budget history
                 await event.updateBudgetHistory(user.id);
+
+                // Notify event planner of budget change.
+                const email = new Email(event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
+                await email.send();
+
             }
 
 
