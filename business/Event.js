@@ -186,7 +186,7 @@ export class Event {
     /**
      * Get event history by event ID
      * @param {Integer} eventId
-     * @returns {Promise<Object[]>} Array of Event objects
+     * @returns {Promise<Object[]>} Array of Event History objects
      * @throws {Error}
      */
     static async getEventHistory(eventId) {

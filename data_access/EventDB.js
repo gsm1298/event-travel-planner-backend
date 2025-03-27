@@ -183,6 +183,11 @@ export class EventDB extends DB {
         });
     }
 
+    /**
+     * Get the budget history of an event from the database
+     * @param {Integer} eventId
+     * @returns {Promise<EventBudgetHistory[]>} Array of EventBudgetHistory objects
+     */
     getEventHistory(eventId) {
         return new Promise((resolve, reject) => {
             try {
