@@ -259,7 +259,7 @@ export class EventService {
                 await event.updateBudgetHistory(user.id);
 
                 // Notify event planner of budget change.
-                const email = new Email(event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
+                const email = new Email('no-reply@jlabupch.uk', event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
                 await email.send();
 
             }
