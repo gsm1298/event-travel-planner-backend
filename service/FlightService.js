@@ -214,43 +214,45 @@ export class FlightService {
     // Book Flight
     /**@type {express.RequestHandler} */
     async booking(req, res) {
-        const schema = Joi.object({
-            id: Joi.string().required(),
-            price: Joi.number().positive().required()
-        });
+        // const schema = Joi.object({
+        //     id: Joi.string().required(),
+        //     price: Joi.number().positive().required()
+        // });
 
-        const { error } = schema.validate(req.body);
-        if (error) {
-            return res.status(400).json({ error: error.details[0].message });
-        }
+        // const { error } = schema.validate(req.body);
+        // if (error) {
+        //     return res.status(400).json({ error: error.details[0].message });
+        // }
 
         var input = req.body;
 
         try {
-            var flight = await Flight.getFlight(input.flightID);
+            console.log(input);
+            var flight = await Flight.getFlightByID(input.flightID);
             if(!flight) {
                 return res.status(404).json({ error: "Flight not found" });
             }
 
             // Payment Creation
 
-            var confirmation = await duffel.payments.create({
-                'order_id': input.id,
-                'payment': {
-                    'type': 'balance',
-                    'amount': input.price,
-                    'currency': 'USD'
-                }
-            })
-
+            // var confirmation = await duffel.payments.create({
+            //     'order_id': input.id,
+            //     'payment': {
+            //         'type': 'balance',
+            //         'amount': input.price,
+            //         'currency': 'USD'
+            //     }
+            // })
 
             flight.status = 2; // Need to double check
-            flight.order_id = confirmation.order_id
+            flight.order_id = "TEMP"
+            flight.approved_by = res.locals.user.id
+            flight.confirmation_code = "Confirmed"
             flight.save();
 
             // Send email to user
-            const email = new Email('no-reply@jlabupch.uk', user.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
-            await email.sendEmail();
+            // const email = new Email('no-reply@jlabupch.uk', user.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
+            // await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
         } catch (error) {

@@ -76,15 +76,15 @@ export class FlightDB extends DB {
 
                 const params = [flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time, 
                 flight.arrive_loc, flight.status, flight.approved_by, flight.seat_num, flight.seat_letter, 
-                flight.confirmation_code, flight.flight_number, flight.order_id];
+                flight.confirmation_code, flight.flight_number, flight.order_id, flight.flight_id];
 
                 this.con.query(query, params, (error, result) => {
                     if (!error) {
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        console.error(err);
-                        reject(err);
+                        console.error(error);
+                        reject(error);
                     }
                 });
             } catch(error) {
