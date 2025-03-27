@@ -199,6 +199,10 @@ export class FlightService {
             null, null, null, null, null, data.id);
             newHold.save();
 
+            // Send email to user
+            const email = new Email('no-reply@jlabupch.uk', user.email, "Flight on Hold", `Your flight to ${data.destination_airport} has been placed on hold.`);
+            await email.sendEmail();
+
             res.status(200).send(JSON.stringify(data));
 
         } catch (error) {
@@ -243,6 +247,10 @@ export class FlightService {
             flight.status = 2; // Need to double check
             flight.order_id = confirmation.order_id
             flight.save();
+
+            // Send email to user
+            const email = new Email('no-reply@jlabupch.uk', user.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
+            await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
         } catch (error) {

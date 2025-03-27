@@ -184,6 +184,25 @@ export class Event {
     }
 
     /**
+     * Get event history by event ID
+     * @param {Integer} eventId
+     * @returns {Promise<Object[]>} Array of Event History objects
+     * @throws {Error}
+     */
+    static async getEventHistory(eventId) {
+        const db = new EventDB();
+        try {
+            return await db.getEventHistory(eventId);
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to get event history");
+       } finally {
+            db.close();
+        }
+    }
+
+    /**
      * Find all events
      * @returns {Promise<Event[]>} Array of Event objects
      * @throws {Error}
