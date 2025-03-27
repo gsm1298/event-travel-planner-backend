@@ -113,7 +113,7 @@ export class AuthService {
             jwt.verify(token, jwtSecret, (err, decoded) => {
                 if (err) {
                     // Unset invalid cookie
-                    return res.status(401).cookie("temp", "", { maxAge: 1 }).json({ error: "Not authenticated" });
+                    return res.status(401).cookie("temp", "", {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).json({ error: "Not authenticated" });
                 }
             });
         } catch (err) {
@@ -164,7 +164,7 @@ export class AuthService {
     logout(_, res) {
         try{
         // Unset the cookie
-        res.status(200).cookie("jwt", "", { maxAge: 1 }).send();
+        res.status(200).cookie("jwt", "", {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).send();
         } catch (err) {
             console.error("Error at Logout:  ", err);
             res.status(500).json({ error: "Internal server error" });
@@ -193,7 +193,7 @@ export class AuthService {
             jwt.verify(token, jwtSecret, (err, decoded) => {
                 if (err) {
                     // Unset invalid cookie
-                    return res.status(401).cookie("jwt", "", { maxAge: 1 }).json({ error: "Not authenticated" });
+                    return res.status(401).cookie("jwt", "", {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).json({ error: "Not authenticated" });
                 }
 
                 res.locals.user = decoded;
