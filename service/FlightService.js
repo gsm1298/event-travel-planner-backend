@@ -188,9 +188,9 @@ export class FlightService {
                 guarantee: confirmation.data.payment_status.price_guarantee_expires_at
             }
 
-            var newHold = Flight(null, res.locals.user.id, flight.price, flight.depart_time, 
-            flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, 
-            flight.approved_by, flight.seat_num, flight.confirmation_code, flight.flight_number, 
+            var newHold = new Flight(null, res.locals.user.id, input.flight.price, input.flight.depart_time, 
+            input.flight.depart_loc, input.flight.arrive_time, input.flight.arrive_loc, 1, 
+            null, null, null, null, null, 
             data.id);
             newHold.save();
 
