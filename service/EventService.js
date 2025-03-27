@@ -252,7 +252,7 @@ export class EventService {
             }
 
             // Ensure the user is authorized to update this event
-            if (event.createdBy.id !== user.id) {
+            if (event.createdBy.id !== user.id && event.financeMan.id !== user.id) {
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
