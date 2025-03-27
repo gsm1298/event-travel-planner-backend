@@ -47,7 +47,7 @@ export class UserDB extends DB {
                     else {
                         query= `
                             INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, date_of_birth, profile_picture, org_id, role_id)
-                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         `;
                         params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, 1]; // Default to 1 (Attendee)
                     }

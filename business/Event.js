@@ -1,6 +1,7 @@
 import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
 import { EventDB } from '../data_access/EventDB.js';
+import { Email } from '../business/Email.js';
 
 /**
  * @Class Event
@@ -79,10 +80,34 @@ export class Event {
         const db = new EventDB();
         try {
             await db.addAttendeesToEvent(this.id, attendees);
+
+            attendees.forEach(async attendee => {
+                const user = await User.GetUserById(attendee.id);
+                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
+                await email.sendEmail();
+            });
         } catch(error) {
             // TODO - Log error
             console.error(error);
             throw new Error("Error trying to add attendees to event");
+        } finally { db.close(); }
+    }
+
+    /**
+     * Add a new attendee to the event
+     * @param {User} attendee
+     * @returns {Promise<void>}
+     * @throws {Error}
+     */
+    async addNewAttendee(attendee) {
+        const db = new EventDB();
+        try {
+            await db.addAttendeesToEvent(this.id, [attendee]);
+            const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
+            await email.sendEmail();
+        } catch(error) {
+            console.error(error);
+            throw new Error("Error trying to add new attendee to event");
         } finally { db.close(); }
     }
 
