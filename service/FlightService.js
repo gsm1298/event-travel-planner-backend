@@ -2,7 +2,6 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { Duffel } from '@duffel/api';
-import zipcodes from 'zipcodes';
 import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
 import Joi from 'joi';
@@ -14,7 +13,7 @@ const duffel = new Duffel({
 })
 
 export class FlightService {
-    #amadeus_bearer = null;
+    #amadeus_bearer = 'czob1NpO1JsFwGkGhPBcPvtmbFdY';
 
     /**
      * @constructor
@@ -33,7 +32,7 @@ export class FlightService {
 
     // Helper Functions ----------------------------------------------------------
     parseSlice(slice) {
-        var parsed = [];
+        var parsed = [1];
 
         return parsed;
     }
@@ -52,23 +51,23 @@ export class FlightService {
         }).then((Response) => Response.json())
     }
 
-    async findMajorAirports(lat, long) {
-        const list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${lat}&longitude=${long}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + this.#amadeus_bearer
-            }
-        })
+    // async findMajorAirports(lat, long) {
+    //     const list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${lat}&longitude=${long}`, {
+    //         method: 'GET',
+    //         headers: {
+    //             'Authorization': 'Bearer ' + this.#amadeus_bearer
+    //         }
+    //     })
 
-        if(list.status == 401) {
-            this.genToken().then(this.findMajorAirports(lat,long));
-        } else if (list.status == 200) {
-            const parsed = await list.json();
-            return parsed.data[0].address.cityCode;
-        } else {
-            this.genToken().then(this.findMajorAirports(lat,long));
-        }
-    }
+    //     if(list.status == 401) {
+    //         this.genToken().then(this.findMajorAirports(lat,long));
+    //     } else if (list.status == 200) {
+    //         const parsed = await list.json();
+    //         return parsed.data[0].address.cityCode;
+    //     } else {
+    //         this.genToken().then(this.findMajorAirports(lat,long));
+    //     }
+    // }
 
 
     // Endpoints -----------------------------------------------------------------
@@ -76,25 +75,38 @@ export class FlightService {
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
-        const schema = Joi.object({
-            destination: Joi.string().length(3).required(),
-            zip: Joi.string().required(),
-            departure_date: Joi.string().isoDate().required()
-        });
+        var origin_airport;
 
-        const { error } = schema.validate(req.body);
-        if (error) {
-            return res.status(400).json({ error: error.details[0].message });
-        }
+        // const schema = Joi.object({
+        //     lat: Joi.float().required(),
+        //     long: Joi.float().required(),
+        //     departure_date: Joi.string().isoDate().required()
+        // });
+
+        // const { error } = schema.validate(req.body);
+        // if (error) {
+        //     return res.status(400).json({ error: error.details[0].message });
+        // }
 
         var input = req.body;
 
         try {
-            // Lookup client zip and get coords for Duffel call
-            var client_coords = zipcodes.lookup(input.zip);
-
             // Call to Amadeus to return list of closest airport codes
-            var airports = await this.findMajorAirports(client_coords.latitude, client_coords.longitude);
+            origin_airport = async () => {
+                const list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${lat}&longitude=${long}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + this.#amadeus_bearer
+                    }
+                })
+        
+                if(list.status == 401) {
+                    this.genToken().then(this.findMajorAirports(lat,long));
+                } else if (list.status == 200) {
+                    const parsed = await list.json();
+                    return parsed.data[0].address.cityCode;
+                }
+            }
         } catch (err) {
             console.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
