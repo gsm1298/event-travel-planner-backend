@@ -232,7 +232,7 @@ export class EventService {
                 pictureLink: Joi.string().uri().optional(),
                 maxBudget: Joi.number().positive().optional(),
                 autoApprove: Joi.boolean().optional(),
-                autoApproveThreshold: Joi.number().positive().optional()
+                autoApproveThreshold: Joi.number().optional()
             });
 
             // Validate request body
