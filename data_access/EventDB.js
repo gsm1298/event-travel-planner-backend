@@ -183,6 +183,50 @@ export class EventDB extends DB {
         });
     }
 
+    getEventHistory(eventId) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = `
+                    SELECT 
+                        eventbudgethistory.history_id, eventbudgethistory.event_id, eventbudgethistory.budget, 
+                        updater.user_id AS 'updater_id', updater.first_name AS 'updater_first_name', 
+                        updater.last_name AS 'updater_last_name', 
+                        eventbudgethistory.created, eventbudgethistory.last_edited 
+                    FROM eventbudgethistory
+                        LEFT JOIN user AS updater ON eventbudgethistory.updated_by = updater.user_id
+                    WHERE event_id = ?
+                `;
+
+                this.con.query(query, [eventId], (err, rows) => {
+                    if (!err) {
+                        if (rows.length > 0) {
+                            resolve(
+                                rows.map(row => ({
+                                    id: row.history_id,
+                                    eventId: row.event_id,
+                                    budget: row.budget,
+                                    updater: new User(row.updater_id, row.updater_first_name, row.updater_last_name),
+                                    created: row.created,
+                                    lastEdited: row.last_edited
+                                }))
+                            );
+                        } 
+                        else { resolve(null); }
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch (error) {
+                // TODO - error logging
+                console.error(error);
+                reject(error);
+            }
+        });
+    }
+
     /**
      * Update an existing event in the database
      * @param {Event} event
