@@ -80,6 +80,9 @@ export class EventService {
             // Save event to the database
             const eventId = await newEvent.save();
 
+            // Update the event budget history
+            await newEvent.updateBudgetHistory(user.id);
+
             // Add attendees to the event
             if (req.body.attendees) {
                 await newEvent.addAttendees(req.body.attendees);
@@ -243,10 +246,18 @@ export class EventService {
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
+            const updatedBudget = (eventData.maxBudget && eventData.maxBudget != event.maxBudget);
+
             // Update event properties
             Object.assign(event, eventData);  // Update only the provided fields
 
-            var success = await event.save();  // Save updated event
+            const success = await event.save();  // Save updated event
+
+            if (success && updatedBudget) {
+                // Update the event budget history
+                await event.updateBudgetHistory(user.id);
+            }
+
 
             if (success) {
                 res.status(200).json({ message: "Event updated successfully" });

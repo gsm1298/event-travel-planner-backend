@@ -71,6 +71,23 @@ export class Event {
     }
 
     /**
+     * Update the event budget history
+     * @returns {Promise<void>}
+     * @param {Integer} userId - The user ID of the user who is updating the budget history
+     * @throws {Error}
+     */
+    async updateBudgetHistory(userId) {
+        const db = new EventDB();
+        try {
+            await db.updateEventBudgetHistory(this, userId);
+        } catch(error) {
+            // TODO - Log error
+            console.error(error);
+            throw new Error("Error trying to update budget history");
+        } finally { db.close(); }
+    }
+
+    /**
      * Add attendees to the event
      * @param {Array} attendees
      * @returns {Promise<void>}
