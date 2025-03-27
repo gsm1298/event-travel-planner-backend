@@ -145,7 +145,8 @@ export class FlightService {
     async hold(req, res) {
         const schema = Joi.object({
             offerID: Joi.string().required(),
-            passID: Joi.string().required()
+            passID: Joi.string().required(),
+            flight: Joi.object().required()
         });
 
         const { error } = schema.validate(req.body);
@@ -163,6 +164,9 @@ export class FlightService {
         }
 
         try {
+            var deptdate = new Date((input.flight.date).slice(0,11) + input.flight.depart_time + ":00.000Z");
+            var arrdate = new Date((input.flight.date).slice(0,11) + input.flight.arrive_time + ":00.000Z");
+
             var confirmation = await duffel.orders.create({
                 selected_offers: [input.offerID],
                 type: "hold",
@@ -188,10 +192,11 @@ export class FlightService {
                 guarantee: confirmation.data.payment_status.price_guarantee_expires_at
             }
 
-            var newHold = new Flight(null, res.locals.user.id, input.flight.price, input.flight.depart_time, 
-            input.flight.depart_loc, input.flight.arrive_time, input.flight.arrive_loc, 1, 
-            null, null, null, null, null, 
-            data.id);
+            
+
+            var newHold = new Flight(null, res.locals.user.id, input.flight.price, deptdate, 
+            input.flight.depart_loc, arrdate, input.flight.arrive_loc, 1, 
+            null, null, null, null, null, data.id);
             newHold.save();
 
             res.status(200).send(JSON.stringify(data));
@@ -225,16 +230,18 @@ export class FlightService {
 
             // Payment Creation
 
-            // var confirmation = await duffel.payments.create({
-            //     'order_id': input.id,
-            //     'payment': {
-            //         'type': 'balance',
-            //         'amount': input.price,
-            //         'currency': 'USD'
-            //     }
-            // })
+            var confirmation = await duffel.payments.create({
+                'order_id': input.id,
+                'payment': {
+                    'type': 'balance',
+                    'amount': input.price,
+                    'currency': 'USD'
+                }
+            })
+
 
             flight.status = 2; // Need to double check
+            flight.order_id = confirmation.order_id
             flight.save();
 
             res.status(200).json({ success: 'Flight Booked' });
@@ -248,6 +255,8 @@ export class FlightService {
     // For Finance Use
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
+        console.log(req.params.id);
+
         try {
             const eventID = req.params.id;
             const flights = await Flight.getFlightsByEvent(eventID);
