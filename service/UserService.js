@@ -96,14 +96,7 @@ export class UserService {
             if (!user) { return res.status(404).json({ message: "User not found" }); }
 
             // Update User Object fields
-            user.firstName = firstName;
-            user.lastName = lastName;
-            user.email = email;
-            user.phoneNum = phoneNum;
-            user.gender = gender;
-            user.title = title;
-            user.dob = dob;
-            user.profilePic = profilePic;
+            Object.assign(user, req.body);
             user.hashedPass = password ? await User.hashPass(password) : user.hashedPass;
 
             // Update User in DB
