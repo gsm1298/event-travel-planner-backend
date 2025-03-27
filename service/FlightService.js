@@ -6,6 +6,12 @@ import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
 import { Util } from '../business/Util.js';
 import Joi from 'joi';
+import Amadeus from 'amadeus';
+
+const amadeus = new Amadeus({
+    clientId: '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
+    clientSecret: 'cU8Nbf9H15J4fGRv'
+});
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -35,49 +41,30 @@ export class FlightService {
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
-        var amadeus_bearer = 'czob1NpO1JsFwGkGhPBcPvtmbFdY';
         var input = req.body;
         var origin_airport;
-        var list;
 
-        // const schema = Joi.object({
-        //     lat: Joi.float().required(),
-        //     long: Joi.float().required(),
-        //     departure_date: Joi.string().isoDate().required()
-        // });
+        const schema = Joi.object({
+            lat: Joi.number().unsafe().required(),
+            long: Joi.number().unsafe().required(),
+            departure_date: Joi.string().isoDate().required(),
+            destination: Joi.string().required()
+        });
 
-        // const { error } = schema.validate(req.body);
-        // if (error) {
-        //     return res.status(400).json({ error: error.details[0].message });
-        // }
-
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
 
         try {
             // Call to Amadeus to return list of closest airport codes
-            list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${input.lat}&longitude=${input.long}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + amadeus_bearer
-                }
+            await amadeus.referenceData.locations.airports.get({
+                latitude: input.lat, longitude: input.long
+            }).then(resp => {
+                origin_airport = resp.data[0].iataCode;
             })
-    
-            if(list.status == 401) {
-                var token = await Util.gen_token();
-                amadeus_bearer = token.access_token;
-                list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${input.lat}&longitude=${input.long}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': 'Bearer ' + amadeus_bearer
-                    }
-                })
-            }
-            
-            if (list.status == 200) {
-                const parsed = await list.json();
-                origin_airport = parsed.data[0].address.cityCode;
-            } else {
-                return res.status(401).json({ error: "Amadeus Auth Error" });
-            }
+
+
         } catch (err) {
             console.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
@@ -194,16 +181,16 @@ export class FlightService {
             })
 
             var data = {
-                id: confirmation.id,
-                offer_id: confirmation.offer_id,
-                total: confirmation.total_amount,
-                expiration: confirmation.payment_status.payment_required_by,
-                guarantee: confirmation.payment_status.price_guarantee_expires_at
+                id: confirmation.data.id,
+                offer_id: confirmation.data.offer_id,
+                total: confirmation.data.total_amount,
+                expiration: confirmation.data.payment_status.payment_required_by,
+                guarantee: confirmation.data.payment_status.price_guarantee_expires_at
             }
 
-            var newHold = Flight(null, res.locals.user.id, flight.price, flight.depart_time, 
-            flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, 
-            flight.approved_by, flight.seat_num, flight.confirmation_code, flight.flight_number, 
+            var newHold = new Flight(null, res.locals.user.id, input.flight.price, input.flight.depart_time, 
+            input.flight.depart_loc, input.flight.arrive_time, input.flight.arrive_loc, 1, 
+            null, null, null, null, null, 
             data.id);
             newHold.save();
 

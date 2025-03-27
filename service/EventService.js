@@ -161,7 +161,16 @@ export class EventService {
     async getEventById(req, res) {
         try {
             const eventId = req.params.id;
+
+            // Get the event by ID
             const event = await Event.findById(eventId);
+
+            // Get event history
+            const eventHistory = await Event.getEventHistory(eventId);
+
+            // Add history to the event object
+            event.history = eventHistory;
+
             if (event) {
                 res.status(200).json(event);
             } else {
@@ -243,7 +252,7 @@ export class EventService {
             }
 
             // Ensure the user is authorized to update this event
-            if (event.createdBy.id !== user.id) {
+            if (event.createdBy.id !== user.id && event.financeMan.id !== user.id) {
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
