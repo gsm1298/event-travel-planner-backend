@@ -7,6 +7,7 @@ import { Flight } from '../business/Flight.js';
 import { Util } from '../business/Util.js';
 import Joi from 'joi';
 import Amadeus from 'amadeus';
+import { Email } from '../business/Email.js';
 
 const amadeus = new Amadeus({
     clientId: '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
