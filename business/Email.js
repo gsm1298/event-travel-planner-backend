@@ -1,6 +1,12 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import path from 'path';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "email", //specify module where logs are from
+});
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -47,11 +53,11 @@ export class Email {
 
         try {
             const info = await this.transporter.sendMail(mailOptions);
-            console.log('Email sent: ' + info.response);
+            log.log('Email sent: ' + info.response);
             return info;
         } catch (error) {
-            console.error('Error sending email:', error);
-            throw error;
+            log.error('Error sending email:', error);
+            log.error(new error);
         }
     }
 }

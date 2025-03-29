@@ -81,6 +81,7 @@ export class EventDB extends DB {
     addAttendeesToEvent(eventId, attendees) {
         return new Promise((resolve, reject) => {
             try {
+                log.verbose("attendees added to event", { eventId: eventId, userId: attendees.toString });
                 const query = `
                     INSERT INTO attendee (event_id, user_id)
                     VALUES ?
@@ -92,14 +93,12 @@ export class EventDB extends DB {
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -114,6 +113,7 @@ export class EventDB extends DB {
     updateEventBudgetHistory(event, userId) {
         return new Promise((resolve, reject) => {
             try {
+                log.verbose("budget history updated", { eventId: event.id, userId: userId });
                 const query = `
                     INSERT INTO eventbudgethistory (event_id, budget, updated_by)
                     VALUES (?, ?, ?)
@@ -125,14 +125,12 @@ export class EventDB extends DB {
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });

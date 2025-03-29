@@ -3,7 +3,7 @@ import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({
-    business : "Flight", //specify module where logs are from
+    business : "flight", //specify module where logs are from
 });
 
 /**

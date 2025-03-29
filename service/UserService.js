@@ -1,6 +1,5 @@
 import { User } from "../business/User.js";
 import Joi from 'joi';
-
 import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
