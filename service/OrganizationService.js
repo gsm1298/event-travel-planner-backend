@@ -1,6 +1,7 @@
 import express from 'express';
 import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
+import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
@@ -28,6 +29,15 @@ export class OrganizationService {
     /** @type {express.RequestHandler} */
     async createOrganization(req, res) {
         try {
+            // Validate request body
+            const schema = Joi.object({
+                name: Joi.string().min(3).required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             // Use data from the request body
             const { name } = req.body;
 
@@ -82,6 +92,15 @@ export class OrganizationService {
     /** @type {express.RequestHandler} */
     async updateOrganization(req, res) {
         try {
+            // Validate request body
+            const schema = Joi.object({
+                name: Joi.string().min(3).required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             const orgId = req.params.id;
             const name = req.body.name;
 

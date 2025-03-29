@@ -165,11 +165,10 @@ export class User {
 
     /**
     * Save user to database (Create if new, Update if exists)
-    * @param {String} inviteLink (Optional) used when registering new user from invite link
     * @returns {Promise<Boolean>} If the User was successfuly saved
     * @throws {Error}
     */
-    async save(inviteLink = null) {
+    async save() {
         const db = new UserDB();
         try {
             if (this.id) {
@@ -177,7 +176,7 @@ export class User {
                 log.verbose("user updated on save request", { userId: this.id });
                 return success
             } else {
-                const userId = await db.createUser(this, inviteLink);
+                const userId = await db.createUser(this);
                 this.id = userId;  // Assign new ID after insertion
                 log.verbose("new user created on save request", { userId: this.id });
                 return this.userId ? true : false;

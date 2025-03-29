@@ -4,8 +4,8 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import { User } from '../business/User.js';
 import { logger } from '../service/LogService.mjs';
-import nodemailer from 'nodemailer';
-import speakeasy from 'speakeasy';
+import Joi from 'joi';
+import { Email } from '../business/Email.js';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -17,17 +17,6 @@ const log = logger.child({
 // Set jwtSecret from env file
 const jwtSecret = process.env.jwtSecret;
 
-// Init Nodemailer Transporter
-const transporter = nodemailer.createTransport({
-    host: process.env.smtphost,
-    port: process.env.smtpport,
-    secure: false, // use SSL
-    auth: {
-      user: process.env.smtpuser,
-      pass: process.env.smtppass
-    }
-  });
-  
 
 
 export class AuthService {
@@ -48,7 +37,17 @@ export class AuthService {
 
     /** @type {express.RequestHandler} */
     async login(req, res) {
-        try{ 
+        try {
+            // Validate request body
+            const schema = Joi.object({
+                email: Joi.string().email().required(),
+                password: Joi.string().required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             var input = req.body;
             // TODO - validate req schema
 
@@ -83,26 +82,15 @@ export class AuthService {
 
                 const otp = await user.GenerateToken(); // Generate a new token for the user
 
-                const mailOptions = {
-                    from: 'no-reply@jlabupch.uk',
-                    to: user.email,
-                    subject: 'Your Two-Factor Authentication Code',
-                    text: 'Your verification code is: ' + otp // Replace with the actual 2FA code
-                };
+                // Create an email object. From, to, subject, text
+                const email = new Email('no-reply@jlabupch.uk', user.email, 'Your Two-Factor Authentication Code', 'Your verification code is: ' + otp);
                 
                 // Send the email
-                transporter.sendMail(mailOptions, function(error, info){
-                    if (error) {
-                    log.error("Error:" +  error);
-                    return res.status(500).json({ error: "Error sending email." });
-                    } else {
-                    log.info('Email sent: ' + info.response);
-                    //return res.status(200).json({ response: "2FA Code Sent to email." });
-                    var token = jwt.sign({ response: "2FA Code Sent to email." }, jwtSecret, { expiresIn: '5m' });
-                    log.info("2fa code sent to email", userData);
-                    return res.status(200).cookie("temp", token, {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain}).json({ response: "2FA Code Sent to email." });
-                    }
-                });
+                await email.sendEmail();
+
+                //Create a temporary token to send to the user
+                var token = jwt.sign({ response: "2FA Code Sent to email." }, jwtSecret, { expiresIn: '5m' });
+                return res.status(200).cookie("temp", token, {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain}).json({ response: "2FA Code Sent to email." });
 
                 }
 
@@ -115,8 +103,17 @@ export class AuthService {
     }
 
     async mfa(req, res) {
+        try {
+            // Validate request body
+            const schema = Joi.object({
+                email: Joi.string().email().required(),
+                mfaCode: Joi.string().required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
 
-        try{
             const token = req.cookies.temp; // Use the temporary token set during login
             if (!token) {
                 log.verbose("invlid temporary MFA token");
@@ -126,7 +123,7 @@ export class AuthService {
             jwt.verify(token, jwtSecret, (err, decoded) => {
                 if (err) {
                     // Unset invalid cookie
-                    return res.status(401).cookie("temp", "", { maxAge: 1 }).json({ error: "Not authenticated" });
+                    return res.status(401).cookie("temp", "", {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).json({ error: "Not authenticated" });
                 }
             });
         } catch (err) {
@@ -165,7 +162,7 @@ export class AuthService {
                 log.verbose("user MFA enabled, login sucessful", userData); //log a user with MFA enabled and a successful login
 
                 // Set the session
-                var token = jwt.sign({ id: user.id, email: user.email, role: user.role }, jwtSecret, { expiresIn: '30m' });
+                var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
                 return res.status(200).cookie("jwt", token, {httpOnly: false, secure: true, same_site: "none", domain: process.env.domain})
                 .cookie("temp", "", { maxAge: 1 }).json({ user: userData });
             }
@@ -180,7 +177,7 @@ export class AuthService {
     logout(_, res) {
         try{
         // Unset the cookie
-        res.status(200).cookie("jwt", "", { maxAge: 1 }).send();
+        res.status(200).cookie("jwt", "", {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).send();
         } catch (err) {
             log.error("Error at Logout:  ", err);
             res.status(500).json({ error: "Internal server error" });
@@ -209,7 +206,7 @@ export class AuthService {
             jwt.verify(token, jwtSecret, (err, decoded) => {
                 if (err) {
                     // Unset invalid cookie
-                    return res.status(401).cookie("jwt", "", { maxAge: 1 }).json({ error: "Not authenticated" });
+                    return res.status(401).cookie("jwt", "", {httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).json({ error: "Not authenticated" });
                 }
 
                 res.locals.user = decoded;
