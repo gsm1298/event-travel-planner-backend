@@ -2,6 +2,13 @@ import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
 import { EventDB } from '../data_access/EventDB.js';
 import { Email } from '../business/Email.js';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "event", //specify module where logs are from
+});
+
 
 /**
  * @Class Event
@@ -70,6 +77,29 @@ export class Event {
     }
 
     /**
+     * Add attendees to the event
+     * @param {Array} attendees
+     * @returns {Promise<void>}
+     * @throws {Error}
+     */
+    async addAttendees(attendees) {
+        const db = new EventDB();
+        try {
+            log.verbose("added attendees to event", {attendeesList: attendees.toString, eventId: this.id });
+            await db.addAttendeesToEvent(this.id, attendees);
+
+            attendees.forEach(async attendee => {
+                const user = await User.GetUserById(attendee.id);
+                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
+                await email.sendEmail();
+            });
+        } catch(error) {
+             log.error(error);
+             log.error(Error("Error trying to save event"));
+        } finally { db.close(); }
+    }
+
+    /**
      * Update the event budget history
      * @returns {Promise<void>}
      * @param {Integer} userId - The user ID of the user who is updating the budget history
@@ -78,11 +108,11 @@ export class Event {
     async updateBudgetHistory(userId) {
         const db = new EventDB();
         try {
+            log.verbose("budget history for event updated", { userId: userId, eventId: this.id });
             await db.updateEventBudgetHistory(this, userId);
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to update budget history");
+            log.error(error);
+            log.error(Error("Error trying to update budget history"));
         } finally { db.close(); }
     }
 
@@ -100,52 +130,12 @@ export class Event {
             attendees.forEach(async attendee => {
                 const user = await User.GetUserById(attendee.id);
                 const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
+                log.verbose("attendee invited to event", { email: attendee.email, eventId: this.id });
                 await email.sendEmail();
             });
         } catch(error) {
-             // TODO - Log error
-             console.error(error);
-             throw new Error("Error trying to save event");
-        } finally { db.close(); }
-    }
-
-    /**
-     * Update the event budget history
-     * @returns {Promise<void>}
-     * @param {Integer} userId - The user ID of the user who is updating the budget history
-     * @throws {Error}
-     */
-    async updateBudgetHistory(userId) {
-        const db = new EventDB();
-        try {
-            await db.updateEventBudgetHistory(this, userId);
-        } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to update budget history");
-        } finally { db.close(); }
-    }
-
-    /**
-     * Add attendees to the event
-     * @param {Array} attendees
-     * @returns {Promise<void>}
-     * @throws {Error}
-     */
-    async addAttendees(attendees) {
-        const db = new EventDB();
-        try {
-            await db.addAttendeesToEvent(this.id, attendees);
-
-            attendees.forEach(async attendee => {
-                const user = await User.GetUserById(attendee.id);
-                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
-                await email.sendEmail();
-            });
-        } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to add attendees to event");
+            log.error(error);
+            log.error(Error("Error trying to add attendees to event"));
         } finally { db.close(); }
     }
 
@@ -160,10 +150,11 @@ export class Event {
         try {
             await db.addAttendeesToEvent(this.id, [attendee]);
             const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
+            log.verbose("new attendee added", { email: attendee.email });
             await email.sendEmail();
         } catch(error) {
-            console.error(error);
-            throw new Error("Error trying to add new attendee to event");
+            log.error(error);
+            log.error(Error("Error trying to add new attendee to event"));
         } finally { db.close(); }
     }
 
@@ -178,7 +169,6 @@ export class Event {
         try {
             return await db.readEvent(eventId);
         } catch(error) {
-            // TODO - Log error
             log.error(error);
             log.error(new Error("Error trying to find event by id"));
        } finally {
