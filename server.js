@@ -11,7 +11,7 @@ import { EventService } from './service/EventService.js';
 import { FlightService } from './service/FlightService.js';
 import { OrganizationService } from './service/OrganizationService.js';
 import { UserService } from './service/UserService.js';
-import { logger } from './service/LogService.mjs';
+import { logger, middleware } from './service/LogService.mjs';
 
 const server = express();
 
@@ -24,6 +24,9 @@ server.use(bodyParser.json());
 
 // For getting JWT
 server.use(cookieParser());
+
+//for middleware logging events
+server.use(middleware);
 
 // Set the api's baseurl
 const apiRouter = express.Router();
