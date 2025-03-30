@@ -63,12 +63,26 @@ export let logger = new winston.createLogger(customconfig); //export logger obje
 //MORGAN=======================================================================
 
 const morganMiddleware = morgan(
-    ':method :url :status: res[content-length] - :response-time ms :user-agent', 
+    function (tokens, req, res) {
+        return JSON.stringify({
+            method: tokens.method(req, res),
+            url: tokens.url(req, res),
+            status: Number.parseFloat(tokens.status(req, res)),
+            content_length: tokens.res(req, res, 'content-length'),
+            response_time: Number.parseFloat(tokens['response-time'](req, res)),
+            user_agent: req.headers['user-agent'],
+        })
+    },
+    // ':method :url :status: res[content-length] - :response-time ms :user-agent', 
     {
         stream: {
             //configure morgan to use custom winston logger endpoint with http severity
-            write: (message) => logger.http(message.trim()),
+            write: (message) => {
+                var data = JSON.parse(message);
+                logger.http('request', data);
         },
+    },
 });
 
-export let middleware = morganMiddleware;
+//exports morgan logging endpoint to be bonded to express server
+export let middleware = morganMiddleware; //export middleware object
