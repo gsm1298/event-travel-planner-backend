@@ -53,11 +53,11 @@ export class Email {
 
         try {
             const info = await this.transporter.sendMail(mailOptions);
-            log.log('Email sent: ' + info.response);
+            log.info('Email sent: ' + info.response);
             return info;
         } catch (error) {
             log.error('Error sending email:', error);
-            log.error(new error);
+            log.error(new Error(error));
         }
     }
 }
