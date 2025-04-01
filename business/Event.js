@@ -1,6 +1,14 @@
 import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
 import { EventDB } from '../data_access/EventDB.js';
+import { Email } from '../business/Email.js';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "event", //specify module where logs are from
+});
+
 
 /**
  * @Class Event
@@ -10,6 +18,7 @@ export class Event {
      * @constructor
      * @param {Integer} id
      * @param {String} name
+     * @param {String} destinationCode
      * @param {User} createdBy
      * @param {User} financeMan
      * @param {Date} startDate
@@ -20,11 +29,17 @@ export class Event {
      * @param {String} pictureLink
      * @param {Integer} maxBudget
      * @param {Integer} currentBudget
+     * @param {Boolean} autoApprove
+     * @param {Double} autoApproveThreshold
      */
 
-    constructor(id = null, name = null, createdBy = null, financeMan = null, startDate = null, endDate = null, org = null, inviteLink = null, description = null, pictureLink = null, maxBudget = null, currentBudget = null){
+    constructor(
+        id = null, name = null, destinationCode = null, createdBy = null, financeMan = null, startDate = null, endDate = null, org = null, 
+        inviteLink = null, description = null, pictureLink = null, maxBudget = null, currentBudget = null, autoApprove = null, autoApproveThreshold = null
+    ){
         this.id = id;
         this.name = name;
+        this.destinationCode = destinationCode;
         this.createdBy = createdBy;
         this.financeMan = financeMan;
         this.startDate = startDate;
@@ -35,6 +50,8 @@ export class Event {
         this.pictureLink = pictureLink;
         this.maxBudget = maxBudget;
         this.currentBudget = currentBudget;
+        this.autoApprove = autoApprove;
+        this.autoApproveThreshold = autoApproveThreshold;
     }
 
     /**
@@ -54,9 +71,90 @@ export class Event {
                 return eventId;
             }
         } catch(error) {
-             // TODO - Log error
-             console.error(error);
-             throw new Error("Error trying to save event");
+             log.error(error);
+             log.error(new Error("Error trying to save event"));
+        } finally { db.close(); }
+    }
+
+    /**
+     * Add attendees to the event
+     * @param {Array} attendees
+     * @returns {Promise<void>}
+     * @throws {Error}
+     */
+    async addAttendees(attendees) {
+        const db = new EventDB();
+        try {
+            log.verbose("added attendees to event", {attendeesList: attendees.toString, eventId: this.id });
+            await db.addAttendeesToEvent(this.id, attendees);
+
+            attendees.forEach(async attendee => {
+                const user = await User.GetUserById(attendee.id);
+                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
+                await email.sendEmail();
+            });
+        } catch(error) {
+             log.error(error);
+             log.error(Error("Error trying to save event"));
+        } finally { db.close(); }
+    }
+
+    /**
+     * Update the event budget history
+     * @returns {Promise<void>}
+     * @param {Integer} userId - The user ID of the user who is updating the budget history
+     * @throws {Error}
+     */
+    async updateBudgetHistory(userId) {
+        const db = new EventDB();
+        try {
+            log.verbose("budget history for event updated", { userId: userId, eventId: this.id });
+            await db.updateEventBudgetHistory(this, userId);
+        } catch(error) {
+            log.error(error);
+            log.error(Error("Error trying to update budget history"));
+        } finally { db.close(); }
+    }
+
+    /**
+     * Add attendees to the event
+     * @param {Array} attendees
+     * @returns {Promise<void>}
+     * @throws {Error}
+     */
+    async addAttendees(attendees) {
+        const db = new EventDB();
+        try {
+            await db.addAttendeesToEvent(this.id, attendees);
+
+            attendees.forEach(async attendee => {
+                const user = await User.GetUserById(attendee.id);
+                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
+                log.verbose("attendee invited to event", { email: attendee.email, eventId: this.id });
+                await email.sendEmail();
+            });
+        } catch(error) {
+            log.error(error);
+            log.error(Error("Error trying to add attendees to event"));
+        } finally { db.close(); }
+    }
+
+    /**
+     * Add a new attendee to the event
+     * @param {User} attendee
+     * @returns {Promise<void>}
+     * @throws {Error}
+     */
+    async addNewAttendee(attendee) {
+        const db = new EventDB();
+        try {
+            await db.addAttendeesToEvent(this.id, [attendee]);
+            const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
+            log.verbose("new attendee added", { email: attendee.email });
+            await email.sendEmail();
+        } catch(error) {
+            log.error(error);
+            log.error(Error("Error trying to add new attendee to event"));
         } finally { db.close(); }
     }
 
@@ -71,9 +169,8 @@ export class Event {
         try {
             return await db.readEvent(eventId);
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to find event by id");
+            log.error(error);
+            log.error(new Error("Error trying to find event by id"));
        } finally {
             db.close();
         }
@@ -94,19 +191,43 @@ export class Event {
             switch(userRole) {
                 case "Attendee":
                     eventsData = await db.getEventsForAttendee(userId);
+                    log.verbose("event retireved by attendee", { userId: userId });
                     break;
                 case "Event Planner":
                     eventsData = await db.getEventsCreatedByUser(userId);
+                    log.verbose("event retireved by event planner", { userId: userId });
                     break;
                 case "Finance Manager":
                     eventsData = await db.getEventsForFinanceManager(userId);
+                    log.verbose("event retireved by finance manager", { userId: userId });
                     break;
             }
-            return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
+            return eventsData.map(event => new Event(
+                event.id, event.name, event.destinationCode, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, 
+                event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold
+            ));
+        } catch(error) {
+            log.error(error);
+            log.error(new Error("Error trying to get events"));
+       } finally {
+            db.close();
+        }
+    }
+
+    /**
+     * Get event history by event ID
+     * @param {Integer} eventId
+     * @returns {Promise<Object[]>} Array of Event History objects
+     * @throws {Error}
+     */
+    static async getEventHistory(eventId) {
+        const db = new EventDB();
+        try {
+            return await db.getEventHistory(eventId);
         } catch(error) {
             // TODO - Log error
             console.error(error);
-            throw new Error("Error trying to get events");
+            throw new Error("Error trying to get event history");
        } finally {
             db.close();
         }
@@ -122,11 +243,13 @@ export class Event {
         try {
             // TODO: Check for permissions before returning all events, as events may be private/inaccessible to user.
             const eventsData = await db.getAllEvents();
-            return eventsData.map(event => new Event(event.id, event.name, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget));
+            return eventsData.map(event => new Event(
+                event.id, event.name, event.destinationCode, event.createdBy, event.financeMan, event.startDate, event.endDate, event.org, 
+                event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold
+            ));
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to find all events");
+            log.error(error);
+            log.error(new Error("Error trying to find all events"));
        } finally {
             db.close();
         }
@@ -141,11 +264,11 @@ export class Event {
     static async delete(eventId) {
         const db = new EventDB();
         try {
+            log.verbose("event deleted", { eventId: eventId });
             return await db.deleteEvent(eventId);
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to delete event");
+            log.error(error);
+            log.error(new Error("Error trying to delete event"));
        } finally {
             db.close();
         }

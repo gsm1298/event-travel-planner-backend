@@ -1,5 +1,13 @@
 import express from 'express';
-import { Organization } from '../business/Organization.js'
+import { Organization } from '../business/Organization.js';
+import { User } from '../business/User.js';
+import Joi from 'joi';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    service : "organizationService", //specify module where logs are from
+});
 
 export class OrganizationService {
     /**
@@ -11,6 +19,7 @@ export class OrganizationService {
 
         // Define all routes for organization operations
         this.app.post('/organization', this.createOrganization);
+        this.app.get('/organization/users', this.getUsersInOrg);
         this.app.get('/organization/:id', this.getOrganizationById);
         this.app.get('/organizations', this.getAllOrganizations);
         this.app.put('/organization/:id', this.updateOrganization);
@@ -19,7 +28,16 @@ export class OrganizationService {
 
     /** @type {express.RequestHandler} */
     async createOrganization(req, res) {
-        try{
+        try {
+            // Validate request body
+            const schema = Joi.object({
+                name: Joi.string().min(3).required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             // Use data from the request body
             const { name } = req.body;
 
@@ -30,6 +48,7 @@ export class OrganizationService {
             const createdOrg = await newOrg.save();
 
             if (createdOrg) {
+                log.verbose("New org created", { orgName: name });
                 res.status(201).json({ message: "Organization created successfully", createdOrg });
             }
             else {
@@ -43,36 +62,45 @@ export class OrganizationService {
 
     /** @type {express.RequestHandler} */
     async getOrganizationById(req, res) {
-        try{
+        try {
             const orgId = req.params.id;
             const org = await Organization.getOrg(orgId);
             if (org) {
                 res.status(200).json(org);
-            } 
+            }
             else {
                 res.status(404).json({ message: "Organization not found" });
             }
         } catch (err) {
-            console.error("Error at Get Organization by ID:  ", err);
+            log.error("Error at Get Organization by ID:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }
 
     /** @type {express.RequestHandler} */
     async getAllOrganizations(req, res) {
-        try{
+        try {
             const orgs = await Organization.getOrgs();
             if (orgs) { res.status(200).json(orgs); }
             else { res.status(404).json({ message: "No Organizations found" }); }
         } catch (err) {
-            console.error("Error at Get All Organizations:  ", err);
+            log.error("Error at Get All Organizations:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }
 
     /** @type {express.RequestHandler} */
     async updateOrganization(req, res) {
-        try{ 
+        try {
+            // Validate request body
+            const schema = Joi.object({
+                name: Joi.string().min(3).required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
             const orgId = req.params.id;
             const name = req.body.name;
 
@@ -89,11 +117,29 @@ export class OrganizationService {
             // Update Org in DB
             const updatedOrg = await org.save();
             if (updatedOrg) {
+                log.verbose("orOrganization updated successfullygin", { orgName: updatedOrg });
                 res.status(200).json({ message: "Organization updated successfully", updatedOrg });
             }
             else { res.status(500).json({ error: "Unable to update Organization." }); }
         } catch (err) {
-            console.error("Error at Update Organization:  ", err);
+            log.error("Error at Update Organization:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }
+
+    /** @type {express.RequestHandler} */
+    async getUsersInOrg(req, res) {
+        try {
+            const user = await User.GetUserById(res.locals.user.id);
+            const users = await User.GetAllUsersFromOrg(user.org.id);
+            if (users) {
+                res.status(200).json(users);
+            }
+            else {
+                res.status(404).json({ message: "No users found in Organization" });
+            }
+        } catch (err) {
+            log.error("Error at Get Users in Organization:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }

@@ -3,16 +3,22 @@
 import { DB } from './DB.js'
 import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
+import { logger } from '../service/LogService.mjs';
 //import { Event } from '../business/Event.js';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "userDb", //specify module where logs are from
+});
 
 const baseUserQuery =
 `
     SELECT 
         user.user_id, user.first_name, user.last_name, user.email, user.phone_num,
-        user.gender, user.title, user.hashed_password, 
+        user.gender, user.title, user.hashed_password, user.mfa_secret,
         user.profile_picture, user.org_id, organization.name AS 'org_name',
         user.known_traveler_number, user.department, user.role_id, role.name AS 'role_name',
-        user.2fa_enabled, user.last_login, user.created, user.last_edited
+        user.mfa_enabled, user.date_of_birth, user.last_login, user.created, user.last_edited
     FROM user
         LEFT JOIN organization ON user.org_id = organization.org_id
         LEFT JOIN role ON user.role_id = role.role_id
@@ -26,58 +32,48 @@ export class UserDB extends DB {
     /**
      * Create a new event in the database
      * @param {User} user
-     * @param {String} inviteLink (Optional) used when registering new user from invite link
      * @returns {Promise<Integer>} The ID of the inserted event
      */
-    createUser(user, inviteLink = null) {
+    createUser(user) {
         return new Promise((resolve, reject) => {
             try {
                 var query;
                 var params;
-
-                // Check if inviteLink is present
-                if (inviteLink) {
-                    query= `
-                        INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, profile_picture, org_id, role_id)
-                        VALUES(?, ?, ?, ?, ?, ?, ?, ?, (SELECT event.org_id FROM event WHERE event.invite_link = ? LIMIT 1), ?)
-                    `;
-                    params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, inviteLink, 1]; // Default to 1 (Attendee)
-                }
+                
                 // Check if orgId is set in user obejct
-                else if (user.org?.id) {
+                if (user.org?.id) {
                     // Check if role is set in userObject
                     if (user.role) {
                         query= `
-                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, profile_picture, org_id, role_id)
-                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT role.role_id FROM role.name = ? LIMIT 1))
+                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, date_of_birth, profile_picture, org_id, role_id)
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT role.role_id FROM role.name = ? LIMIT 1))
                         `;
-                        params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, user.role];
+                        params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, user.role];
                     }
                     else {
                         query= `
-                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, profile_picture, org_id, role_id)
-                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, date_of_birth, profile_picture, org_id, role_id)
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         `;
-                        params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, 1]; // Default to 1 (Attendee)
+                        params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, 1]; // Default to 1 (Attendee)
                     }
-                } else { reject('No invite link present and no organization ID set'); }
+                } else { reject('Organization ID set'); }
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
                         if (result.insertId > 0) {
+                            log.verbose("user created", { userId: user.id, userEmail: user.email, userOrgId: user.org.id }); // logging for user creation
                             resolve(result.insertId);
                         }
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from createUser", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from createUser", error);
                 reject(error);
             }
 
@@ -94,23 +90,22 @@ export class UserDB extends DB {
             try{
                 const query = `
                     UPDATE user
-                    SET  user.first_name = ?, laste_name = ?, email = ?, hashed_pass = ?, title = ?, phone_num = ?, gender = ?, profile_picture = ?, org_id = ?, role_id = (SELECT role.role_id FROM role WHERE role.role_name = ? LIMIT 1)
+                    SET  user.first_name = ?, last_name = ?, email = ?, hashed_password = ?, mfa_secret = ?, title = ?, phone_num = ?, gender = ?, date_of_birth = ?, profile_picture = ?, org_id = ?, mfa_enabled = ?
                     WHERE user.user_id = ?`;
-                const params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.profilePic, user.org.id, user.role];
+                const params = [user.firstName, user.lastName, user.email, user.hashedPass, JSON.stringify(user.mfaSecret), user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, user.mfaEnabled, user.id];
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
+                        log.verbose("user updated", { userId: user.id, userEmail: user.email, userOrgId: user.org.id }); // audit logging for updates
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from updateUser", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from updateUser", error);
                 reject(error);
             }
         });
@@ -135,21 +130,20 @@ export class UserDB extends DB {
                                     row.user_id, row.first_name, row.last_name, row.email,
                                     row.phone_num, row.gender, row.title, row.profile_picture,
                                     new Organization(row.org_id, row.org_name),
-                                    row.role_name, row.hashed_password
+                                    row.role_name, row.hashed_password, JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                                 )
                             );
+                            log.verbose("user requested by email", { userEmail: email, userId: row.user_id }); // auditing for what user was requested frm the db
                         }
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetUserByEmail", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetUserByEmail", error);
                 reject(error);
             }
         });
@@ -173,21 +167,21 @@ export class UserDB extends DB {
                                     row.user_id, row.first_name, row.last_name, row.email,
                                     row.phone_num, row.gender, row.title, row.profile_picture,
                                     new Organization(row.org_id, row.org_name),
-                                    row.role_name, row.hashed_password
+                                    row.role_name, row.hashed_password, 
+                                    JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                                 )
                             );
+                            log.verbose("user requested by id", { userEmail: row.email, userId: id }); // auditing for what user was requested frm the db
                         }
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetUserById", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetUserById", error);
                 reject(error);
             }
         });
@@ -208,7 +202,8 @@ export class UserDB extends DB {
                                 row.user_id, row.first_name, row.last_name, row.email,
                                 row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
-                                row.role_name, row.hashed_password
+                                row.role_name, row.hashed_password,
+                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                             )
                             );
                             resolve(users);
@@ -216,14 +211,12 @@ export class UserDB extends DB {
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetAllUsers", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetAllUsers", error);
                 reject(error);
             }
         });
@@ -245,7 +238,8 @@ export class UserDB extends DB {
                                 row.user_id, row.first_name, row.last_name, row.email,
                                 row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
-                                row.role_name, row.hashed_password
+                                row.role_name, row.hashed_password,
+                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                             )
                             );
                             resolve(users);
@@ -253,14 +247,12 @@ export class UserDB extends DB {
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetAllUsersFromOrg", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetAllUsersFromOrg", error);
                 reject(error);
             }
         });
@@ -286,7 +278,8 @@ export class UserDB extends DB {
                                 row.user_id, row.first_name, row.last_name, row.email,
                                 row.phone_num, row.gender, row.title, row.profile_picture,
                                 new Organization(row.org_id, row.org_name),
-                                row.role_name, row.hashed_password
+                                row.role_name, row.hashed_password,
+                                JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                             )
                             );
                             resolve(users);
@@ -294,14 +287,12 @@ export class UserDB extends DB {
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetAllAttendeesInEvent", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetAllAttendeesInEvent", error);
                 reject(error);
             }
         });
