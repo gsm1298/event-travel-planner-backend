@@ -4,6 +4,12 @@ import { DB } from './DB.js'
 import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
 import { Flight } from '../business/Flight.js';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "flightDb", //specify module where logs are from
+});
 
 const baseEventQuery =
 `
@@ -43,17 +49,19 @@ export class FlightDB extends DB {
                 this.con.query(query, params, (error, result) => {
                     if (!error) {
                         if (result.insertId > 0) {
+                            log.verbose("flight created", { confirmation: flight.confirmation_code, flightPrice: flight.price, flightApprover: flight.approved_by });
                             resolve(result.insertId);
                         }
                         else { resolve(null); }
                     } 
                     else {
-                        console.error(error);
-                        reject(error);
+                        log.error("database query error from createFlight", err);
+                        reject(err);
                     }
                 }); 
             } catch (error) {
-                
+                log.error("database try/catch error from createFlight", error);
+                reject(error);
             }
         })
     }
@@ -80,15 +88,16 @@ export class FlightDB extends DB {
 
                 this.con.query(query, params, (error, result) => {
                     if (!error) {
+                        log.verbose("flight updated", { confirmation: flight.confirmation_code, flightPrice: flight.price, flightApprover: flight.approved_by });
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        console.error(error);
-                        reject(error);
+                        log.error("database query error from updateFlight", err);
+                        reject(err);
                     }
                 });
             } catch(error) {
-                console.error(error);
+                log.error("database try/catch error from updateFlight", error);
                 reject(error);
             }
         })
@@ -163,13 +172,13 @@ export class FlightDB extends DB {
                         resolve(flights);
                     }
                     else {
-                        console.error(error);
+                        log.error("database query error from getAllFlightsForEvent", error);
                         reject(error);
                     }
                 })
 
             } catch(error) {
-                console.error(error);
+                log.error("database query error from getAllFlightsForEvent", error);
                 reject(error);
             }
         })

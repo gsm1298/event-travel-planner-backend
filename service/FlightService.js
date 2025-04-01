@@ -6,8 +6,14 @@ import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
 import { Util } from '../business/Util.js';
 import Joi from 'joi';
+import { logger } from '../service/LogService.mjs';
 import Amadeus from 'amadeus';
 import { Email } from '../business/Email.js';
+
+// Init child logger instance
+const log = logger.child({
+    service : "flightService", //specify module where logs are from
+
 
 const amadeus = new Amadeus({
     clientId: '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
@@ -67,7 +73,7 @@ export class FlightService {
 
 
         } catch (err) {
-            console.error("Error at Flight Search:  ", err);
+            log.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
         }
 
@@ -136,7 +142,7 @@ export class FlightService {
 
             res.status(200).send(JSON.stringify(data));
         } catch (err) {
-            console.error("Error at Offer Search:  ", err);
+            log.error("Error at Offer Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
         }
     }
@@ -161,6 +167,7 @@ export class FlightService {
         try {
             user = await User.GetUserById(res.locals.user.id);
         } catch (error) {
+            log.error("uncaught user get request from flightservice");
             res.status(500).json({error: "Internal Server Error"});
         }
 
@@ -205,9 +212,10 @@ export class FlightService {
             await email.sendEmail();
 
             res.status(200).send(JSON.stringify(data));
+            log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
 
         } catch (error) {
-            console.error("Error at Booking: ", error);
+            log.error("Error at Booking: ", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
@@ -256,8 +264,10 @@ export class FlightService {
             // await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
+            log.verbose("flight booked", { confirmation: confirmation });
+
         } catch (error) {
-            console.error("Error at Booking: ", error);
+            log.error("Error at Booking: ", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
@@ -277,7 +287,7 @@ export class FlightService {
                 res.status(400).json({ message: "Flights not found" });
             }
         } catch (error) {
-            console.error("Error retrieving flights for event:", error);
+            log.error("Error retrieving flights for event:", error);
             res.status(500).json({ error: "Unable to fetch flights" });
         }
     }

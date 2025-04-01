@@ -4,6 +4,12 @@ import { DB } from './DB.js'
 import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
 import { Event } from '../business/Event.js';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "eventDb", //specify module where logs are from
+});
 
 
 const baseEventQuery =
@@ -44,6 +50,8 @@ export class EventDB extends DB {
                 `;
                 const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold];
 
+                log.verbose("event create request", { event: event.name, eventCreatedBy: event.createdBy }); // log event creation request
+
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
                         if (result.insertId > 0) {
@@ -52,14 +60,12 @@ export class EventDB extends DB {
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from createEvent", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from createEvent", error);
                 reject(error);
             }
 
@@ -75,6 +81,7 @@ export class EventDB extends DB {
     addAttendeesToEvent(eventId, attendees) {
         return new Promise((resolve, reject) => {
             try {
+                log.verbose("attendees added to event", { eventId: eventId, userId: attendees.toString });
                 const query = `
                     INSERT INTO attendee (event_id, user_id)
                     VALUES ?
@@ -86,14 +93,12 @@ export class EventDB extends DB {
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -108,6 +113,7 @@ export class EventDB extends DB {
     updateEventBudgetHistory(event, userId) {
         return new Promise((resolve, reject) => {
             try {
+                log.verbose("budget history updated", { eventId: event.id, userId: userId });
                 const query = `
                     INSERT INTO eventbudgethistory (event_id, budget, updated_by)
                     VALUES (?, ?, ?)
@@ -119,14 +125,12 @@ export class EventDB extends DB {
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });
@@ -170,14 +174,12 @@ export class EventDB extends DB {
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from readEvent", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from readEvent", error);
                 reject(error);
             }
         });
@@ -249,17 +251,16 @@ export class EventDB extends DB {
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
+                        log.verbose("event updated", { event: event.name, eventCreatedBy: event.createdBy }); // audit log the update request
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from updateEvent", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from updateEvent",error);
                 reject(error);
             }
         });
@@ -274,20 +275,19 @@ export class EventDB extends DB {
         return new Promise((resolve, reject) => {
             try {
                 const query = `DELETE FROM event WHERE event_id = ?`;
-                
+
                 this.con.query(query, [eventId], (err, result) => {
                     if (!err) {
+                        log.verbose("event deleted", { eventId: eventId }); // audit log the deletion request
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from deleteEvent", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from deleteEvent", error);
                 reject(error);
             }
         });
@@ -326,14 +326,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getAllEvents", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getAllEvents", error);
                 reject(error);
             }
         });
@@ -377,14 +375,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getEventsForAttendee", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getEventsForAttendee", error);
                 reject(error);
             }
         });
@@ -424,14 +420,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getEventsCreatedByUser", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getEventsCreatedByUser", error);
                 reject(error);
             }
         });
@@ -471,14 +465,12 @@ export class EventDB extends DB {
                         resolve(events);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from getEventsForFinanceManager", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from getEventsForFinanceManager",error);
                 reject(error);
             }
         });

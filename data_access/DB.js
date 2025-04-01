@@ -4,6 +4,12 @@ import path from 'path';
 //import { User } from '../business/User.js';
 //import { Organization } from '../business/Organization.js';
 //import { Event } from '../business/Event.js';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "generalDb", //specify module where logs are from
+});
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -21,7 +27,7 @@ export class DB {
             database: process.env.database
         });
         this.con.connect(function (err) {
-            if (err) throw err;
+            if (err) log.error("error in database access", err);
         });
     }
 
