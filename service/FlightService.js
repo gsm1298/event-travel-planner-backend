@@ -16,15 +16,15 @@ const log = logger.child({
 
 });
 
-const amadeus = new Amadeus({
-    clientId: '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
-    clientSecret: 'cU8Nbf9H15J4fGRv'
-});
-
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
 const duffel = new Duffel({
     token: `${process.env.duffelToken}`
+})
+
+const amadeus = new Amadeus({
+    clientId: `${process.env.amadeusToken}`,
+    clientSecret: `${process.env.amadeusSecret}`
 })
 
 export class FlightService {

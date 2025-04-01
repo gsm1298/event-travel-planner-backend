@@ -44,7 +44,7 @@ const morganFormat = combine(
 //logging configuration
 const customconfig = {
     transports: [ //where the outputs get sent to
-        new transports.Console({ level: "http", format: consoleFormat }), //console output as formatted by the consoleFormat custom format
+        new transports.Console({ level: "silly", format: consoleFormat }), //console output as formatted by the consoleFormat custom format
         new transports.File({ level: "silly", format: logFormat, filename: '../logs/standard.log' }), //log file output as formatted by the logFormat custom format
         new transports.File({ level: "verbose", format: verboseFormat, filename: '../logs/audit.log' }), //log audit activities
         new transports.File({ level: "http", format: morganFormat, filename: '../logs/express.log' })
