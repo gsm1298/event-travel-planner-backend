@@ -14,6 +14,7 @@ import { Email } from '../business/Email.js';
 const log = logger.child({
     service : "flightService", //specify module where logs are from
 
+});
 
 const amadeus = new Amadeus({
     clientId: '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
