@@ -73,7 +73,6 @@ const morganMiddleware = morgan(
             user_agent: req.headers['user-agent'],
         })
     },
-    // ':method :url :status: res[content-length] - :response-time ms :user-agent', 
     {
         stream: {
             //configure morgan to use custom winston logger endpoint with http severity
