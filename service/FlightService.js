@@ -7,10 +7,17 @@ import { Flight } from '../business/Flight.js';
 import { Util } from '../business/Util.js';
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
+import Amadeus from 'amadeus';
+import { Email } from '../business/Email.js';
 
 // Init child logger instance
 const log = logger.child({
     service : "flightService", //specify module where logs are from
+
+
+const amadeus = new Amadeus({
+    clientId: '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
+    clientSecret: 'cU8Nbf9H15J4fGRv'
 });
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
@@ -41,49 +48,30 @@ export class FlightService {
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
-        var amadeus_bearer = 'czob1NpO1JsFwGkGhPBcPvtmbFdY';
         var input = req.body;
         var origin_airport;
-        var list;
 
-        // const schema = Joi.object({
-        //     lat: Joi.float().required(),
-        //     long: Joi.float().required(),
-        //     departure_date: Joi.string().isoDate().required()
-        // });
+        const schema = Joi.object({
+            lat: Joi.number().unsafe().required(),
+            long: Joi.number().unsafe().required(),
+            departure_date: Joi.string().isoDate().required(),
+            destination: Joi.string().required()
+        });
 
-        // const { error } = schema.validate(req.body);
-        // if (error) {
-        //     return res.status(400).json({ error: error.details[0].message });
-        // }
-
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
 
         try {
             // Call to Amadeus to return list of closest airport codes
-            list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${input.lat}&longitude=${input.long}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + amadeus_bearer
-                }
+            await amadeus.referenceData.locations.airports.get({
+                latitude: input.lat, longitude: input.long
+            }).then(resp => {
+                origin_airport = resp.data[0].iataCode;
             })
-    
-            if(list.status == 401) {
-                var token = await Util.gen_token();
-                amadeus_bearer = token.access_token;
-                list = await fetch(`https://test.api.amadeus.com/v1/reference-data/locations/airports?latitude=${input.lat}&longitude=${input.long}`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': 'Bearer ' + amadeus_bearer
-                    }
-                })
-            }
-            
-            if (list.status == 200) {
-                const parsed = await list.json();
-                origin_airport = parsed.data[0].address.cityCode;
-            } else {
-                return res.status(401).json({ error: "Amadeus Auth Error" });
-            }
+
+
         } catch (err) {
             log.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
@@ -164,7 +152,8 @@ export class FlightService {
     async hold(req, res) {
         const schema = Joi.object({
             offerID: Joi.string().required(),
-            passID: Joi.string().required()
+            passID: Joi.string().required(),
+            flight: Joi.object().required()
         });
 
         const { error } = schema.validate(req.body);
@@ -183,6 +172,9 @@ export class FlightService {
         }
 
         try {
+            var deptdate = new Date((input.flight.date).slice(0,11) + input.flight.depart_time + ":00.000Z");
+            var arrdate = new Date((input.flight.date).slice(0,11) + input.flight.arrive_time + ":00.000Z");
+
             var confirmation = await duffel.orders.create({
                 selected_offers: [input.offerID],
                 type: "hold",
@@ -201,18 +193,23 @@ export class FlightService {
             })
 
             var data = {
-                id: confirmation.id,
-                offer_id: confirmation.offer_id,
-                total: confirmation.total_amount,
-                expiration: confirmation.payment_status.payment_required_by,
-                guarantee: confirmation.payment_status.price_guarantee_expires_at
+                id: confirmation.data.id,
+                offer_id: confirmation.data.offer_id,
+                total: confirmation.data.total_amount,
+                expiration: confirmation.data.payment_status.payment_required_by,
+                guarantee: confirmation.data.payment_status.price_guarantee_expires_at
             }
 
-            var newHold = Flight(null, res.locals.user.id, flight.price, flight.depart_time, 
-            flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, 
-            flight.approved_by, flight.seat_num, flight.confirmation_code, flight.flight_number, 
-            data.id);
+            
+
+            var newHold = new Flight(null, res.locals.user.id, input.flight.price, deptdate, 
+            input.flight.depart_loc, arrdate, input.flight.arrive_loc, 1, 
+            null, null, null, null, null, data.id);
             newHold.save();
+
+            // Send email to user
+            const email = new Email('no-reply@jlabupch.uk', user.email, "Flight on Hold", `Your flight to ${data.destination_airport} has been placed on hold.`);
+            await email.sendEmail();
 
             res.status(200).send(JSON.stringify(data));
             log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
@@ -226,20 +223,21 @@ export class FlightService {
     // Book Flight
     /**@type {express.RequestHandler} */
     async booking(req, res) {
-        const schema = Joi.object({
-            id: Joi.string().required(),
-            price: Joi.number().positive().required()
-        });
+        // const schema = Joi.object({
+        //     id: Joi.string().required(),
+        //     price: Joi.number().positive().required()
+        // });
 
-        const { error } = schema.validate(req.body);
-        if (error) {
-            return res.status(400).json({ error: error.details[0].message });
-        }
+        // const { error } = schema.validate(req.body);
+        // if (error) {
+        //     return res.status(400).json({ error: error.details[0].message });
+        // }
 
         var input = req.body;
 
         try {
-            var flight = await Flight.getFlight(input.flightID);
+            console.log(input);
+            var flight = await Flight.getFlightByID(input.flightID);
             if(!flight) {
                 return res.status(404).json({ error: "Flight not found" });
             }
@@ -256,7 +254,14 @@ export class FlightService {
             // })
 
             flight.status = 2; // Need to double check
+            flight.order_id = "TEMP"
+            flight.approved_by = res.locals.user.id
+            flight.confirmation_code = "Confirmed"
             flight.save();
+
+            // Send email to user
+            // const email = new Email('no-reply@jlabupch.uk', user.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
+            // await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
             log.verbose("flight booked", { confirmation: confirmation });
@@ -271,6 +276,8 @@ export class FlightService {
     // For Finance Use
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
+        console.log(req.params.id);
+
         try {
             const eventID = req.params.id;
             const flights = await Flight.getFlightsByEvent(eventID);

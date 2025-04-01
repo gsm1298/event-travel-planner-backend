@@ -4,6 +4,8 @@ import { User } from '../business/User.js'; // User model
 import { AuthService } from './AuthService.js'; // Assuming you already have the AuthService
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs'; // logging
+import { Email } from '../business/Email.js';
+
 
 // Init child logger instance
 const log = logger.child({
@@ -180,7 +182,16 @@ export class EventService {
     async getEventById(req, res) {
         try {
             const eventId = req.params.id;
+
+            // Get the event by ID
             const event = await Event.findById(eventId);
+
+            // Get event history
+            const eventHistory = await Event.getEventHistory(eventId);
+
+            // Add history to the event object
+            event.history = eventHistory;
+
             if (event) {
                 res.status(200).json(event);
             } else {
@@ -242,7 +253,7 @@ export class EventService {
                 pictureLink: Joi.string().uri().optional(),
                 maxBudget: Joi.number().positive().optional(),
                 autoApprove: Joi.boolean().optional(),
-                autoApproveThreshold: Joi.number().positive().optional()
+                autoApproveThreshold: Joi.number().optional()
             });
 
             // Validate request body
@@ -262,8 +273,9 @@ export class EventService {
             }
 
             // Ensure the user is authorized to update this event
-            if (event.createdBy.id !== user.id) {
-                log.verbose("user attempted to make unauthorized event modifications", { userId: user.id, event: event })
+
+            if (event.createdBy.id !== user.id && event.financeMan.id !== user.id) {
+              log.verbose("user attempted to make unauthorized event modifications", { userId: user.id, event: event })
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
@@ -277,6 +289,11 @@ export class EventService {
             if (success && updatedBudget) {
                 // Update the event budget history
                 await event.updateBudgetHistory(user.id);
+
+                // Notify event planner of budget change.
+                const email = new Email('no-reply@jlabupch.uk', event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
+                await email.sendEmail();
+
             }
 
 

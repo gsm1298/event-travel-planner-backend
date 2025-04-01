@@ -95,4 +95,21 @@ export class Flight {
             db.close();
         }
     }
+
+    /**
+     * Get Flight By ID
+     * @param {Integer} flightID
+     *  
+     */
+    static async getFlightByID(flightID) {
+        console.log(flightID);
+        const db = new FlightDB();
+        try {
+            return await db.getFlight(flightID)
+        } catch (error) {
+            throw new Error("Error grabbing flight");
+        } finally {
+            db.close();
+        }
+    }
 }

@@ -42,7 +42,7 @@ export class UserService {
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
                 dob: Joi.date().optional(),
                 org: Joi.object({ id: Joi.number().integer().required() }).optional(),
-                profilePic: Joi.string().uri().optional(),
+                profilePic: Joi.string().optional(),
                 password: Joi.string().required(),
             });
 
@@ -85,7 +85,7 @@ export class UserService {
                 gender: Joi.string().valid('m', 'f').optional(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
                 dob: Joi.date().optional(),
-                profilePic: Joi.string().uri().optional(),
+                profilePic: Joi.string().optional(),
                 password: Joi.string().min(6).optional(),
             });
 

@@ -16,7 +16,7 @@ const baseEventQuery =
 `
     SELECT
         event.event_id, event.name, event.destination_code,
-        creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', event.created_by AS 'created_by_id',
+        creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', creator.email AS 'created_by_email',  event.created_by AS 'created_by_id',
         finance.first_name AS 'finance_man_first_name', finance.last_name AS 'finance_man_last_name', event.finance_man AS 'finance_man_id',
         finance.email AS 'finance_man_email', finance.phone_num AS 'finance_man_phone_num', finance.profile_picture AS 'finance_man_profile_pic',
         event.start_date, event.end_date,
@@ -154,7 +154,7 @@ export class EventDB extends DB {
                                 row.event_id,
                                 row.name,
                                 row.destination_code,
-                                new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
+                                new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name,row.created_by_email),
                                 new User(
                                     row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name,
                                     row.finance_man_email,row.finance_man_phone_num,null,null,row.finance_man_profile_pic
@@ -180,6 +180,55 @@ export class EventDB extends DB {
                 });
             } catch (error) {
                 log.error("database try/catch error from readEvent", error);
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * Get the budget history of an event from the database
+     * @param {Integer} eventId
+     * @returns {Promise<EventBudgetHistory[]>} Array of EventBudgetHistory objects
+     */
+    getEventHistory(eventId) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = `
+                    SELECT 
+                        eventbudgethistory.history_id, eventbudgethistory.event_id, eventbudgethistory.budget, 
+                        updater.user_id AS 'updater_id', updater.first_name AS 'updater_first_name', 
+                        updater.last_name AS 'updater_last_name', 
+                        eventbudgethistory.created, eventbudgethistory.last_edited 
+                    FROM eventbudgethistory
+                        LEFT JOIN user AS updater ON eventbudgethistory.updated_by = updater.user_id
+                    WHERE event_id = ?
+                `;
+
+                this.con.query(query, [eventId], (err, rows) => {
+                    if (!err) {
+                        if (rows.length > 0) {
+                            resolve(
+                                rows.map(row => ({
+                                    id: row.history_id,
+                                    eventId: row.event_id,
+                                    budget: row.budget,
+                                    updater: new User(row.updater_id, row.updater_first_name, row.updater_last_name),
+                                    created: row.created,
+                                    lastEdited: row.last_edited
+                                }))
+                            );
+                        } 
+                        else { resolve(null); }
+                    } 
+                    else {
+                        // TODO - error logging
+                        console.error(err);
+                        reject(err);
+                    }
+                });
+            } catch (error) {
+                // TODO - error logging
+                console.error(error);
                 reject(error);
             }
         });
