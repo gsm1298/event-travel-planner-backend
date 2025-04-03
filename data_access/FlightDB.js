@@ -92,8 +92,8 @@ export class FlightDB extends DB {
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        log.error("database query error from updateFlight", err);
-                        reject(err);
+                        log.error("database query error from updateFlight", error);
+                        reject(error);
                     }
                 });
             } catch(error) {
@@ -122,7 +122,7 @@ export class FlightDB extends DB {
                                     row.flight_id, row.attendee_id, row.price, row.depart_time,
                                     row.depart_loc, row.arrive_time, row.arrive_loc, row.status,
                                     row.approved_by, row.seat_num, row.seat_letter, row.confirmation_code,
-                                    row.flight_number, row.order_id
+                                    row.flight_number, row.order_id, row.event_id
                                 )
                             );
                         } else {

@@ -100,16 +100,17 @@ export class Event {
     }
 
     /**
-     * Update the event budget history
+     * Update the event history
      * @returns {Promise<void>}
-     * @param {Integer} userId - The user ID of the user who is updating the budget history
+     * @param {Integer} userId - The user ID of the user who is updating the event history
+     * @param {Integer | null} flightId - The flight ID of the flight being approved (optional)
      * @throws {Error}
      */
-    async updateBudgetHistory(userId) {
+    async updateEventHistory(userId, flightId = null) {
         const db = new EventDB();
         try {
-            log.verbose("budget history for event updated", { userId: userId, eventId: this.id });
-            await db.updateEventBudgetHistory(this, userId);
+            log.verbose("history for event updated", { userId: userId, eventId: this.id });
+            await db.updateEventHistory(this, userId, flightId);
         } catch(error) {
             log.error(error);
             log.error(Error("Error trying to update budget history"));

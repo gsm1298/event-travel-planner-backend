@@ -9,6 +9,7 @@ import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
 import Amadeus from 'amadeus';
 import { Email } from '../business/Email.js';
+import { Event } from '../business/Event.js';
 
 // Init child logger instance
 const log = logger.child({
@@ -260,12 +261,17 @@ export class FlightService {
             flight.confirmation_code = "Confirmed"
             flight.save();
 
+            // Updated the event history if flight was approved
+            const event = await Event.findById(flight.event_id);
+            await event.updateEventHistory(res.locals.user.id, flight.flight_id);
+            
+
             // Send email to user
             // const email = new Email('no-reply@jlabupch.uk', user.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
             // await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
-            log.verbose("flight booked", { confirmation: confirmation });
+            log.verbose("flight booked", { flightID: flight.flight_id });
 
         } catch (error) {
             log.error("Error at Booking: ", error);

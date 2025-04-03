@@ -102,9 +102,6 @@ export class EventService {
             // Save event to the database
             const eventId = await newEvent.save();
 
-            // Update the event budget history
-            await newEvent.updateBudgetHistory(user.id);
-
             // Add attendees to the event
             if (req.body.attendees) {
                 await newEvent.addAttendees(req.body.attendees);
@@ -284,12 +281,12 @@ export class EventService {
             // Update event properties
             Object.assign(event, eventData);  // Update only the provided fields
 
+            // Update the event budget history
+            await event.updateEventHistory(user.id);
+
             const success = await event.save();  // Save updated event
 
             if (success && updatedBudget) {
-                // Update the event budget history
-                await event.updateBudgetHistory(user.id);
-
                 // Notify event planner of budget change.
                 const email = new Email('no-reply@jlabupch.uk', event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
                 await email.sendEmail();
@@ -298,11 +295,11 @@ export class EventService {
 
 
             if (success) {
-                log.verbose("Event updated successfully", { userId: userId, event: event, eventData: eventData });
+                log.verbose("Event updated successfully", { userId: user.id, event: event, eventData: eventData });
                 res.status(200).json({ message: "Event updated successfully" });
             }
             else {
-                log.verbose("Could not update event", { userId: userId, event: event, eventData: eventData });
+                log.verbose("Could not update event", { userId: user.id, event: event, eventData: eventData });
                 res.status(500).json({ message: "Could not update event" });
             }
         } catch (err) {
