@@ -3,7 +3,13 @@
 import { DB } from './DB.js'
 import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
+import { logger } from '../service/LogService.mjs';
 //import { Event } from '../business/Event.js';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "userDb", //specify module where logs are from
+});
 
 const baseUserQuery =
 `
@@ -56,19 +62,18 @@ export class UserDB extends DB {
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
                         if (result.insertId > 0) {
+                            log.verbose("user created", { userId: user.id, userEmail: user.email, userOrgId: user.org.id }); // logging for user creation
                             resolve(result.insertId);
                         }
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from createUser", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from createUser", error);
                 reject(error);
             }
 
@@ -91,17 +96,16 @@ export class UserDB extends DB {
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
+                        log.verbose("user updated", { userId: user.id, userEmail: user.email, userOrgId: user.org.id }); // audit logging for updates
                         resolve(result.affectedRows > 0);
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from updateUser", err);
                         reject(err);
                     }
                 });
             } catch(error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from updateUser", error);
                 reject(error);
             }
         });
@@ -129,19 +133,17 @@ export class UserDB extends DB {
                                     row.role_name, row.hashed_password, JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                                 )
                             );
-                            
+                            log.verbose("user requested by email", { userEmail: email, userId: row.user_id }); // auditing for what user was requested frm the db
                         }
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetUserByEmail", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetUserByEmail", error);
                 reject(error);
             }
         });
@@ -169,18 +171,17 @@ export class UserDB extends DB {
                                     JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                                 )
                             );
+                            log.verbose("user requested by id", { userEmail: row.email, userId: id }); // auditing for what user was requested frm the db
                         }
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetUserById", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetUserById", error);
                 reject(error);
             }
         });
@@ -210,14 +211,12 @@ export class UserDB extends DB {
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetAllUsers", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetAllUsers", error);
                 reject(error);
             }
         });
@@ -248,14 +247,12 @@ export class UserDB extends DB {
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetAllUsersFromOrg", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetAllUsersFromOrg", error);
                 reject(error);
             }
         });
@@ -290,14 +287,12 @@ export class UserDB extends DB {
                         else { resolve(null); }
                     }
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetAllAttendeesInEvent", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetAllAttendeesInEvent", error);
                 reject(error);
             }
         });

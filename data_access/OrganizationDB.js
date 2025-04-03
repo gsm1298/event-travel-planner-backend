@@ -2,6 +2,12 @@
 //import dotenv from 'dotenv';
 import { DB } from './DB.js'
 import { Organization } from '../business/Organization.js';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    dataAccess : "organizationDb", //specify module where logs are from
+});
 
 export class OrganizationDB extends DB {
     constructor() {
@@ -30,14 +36,12 @@ export class OrganizationDB extends DB {
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetOrganizationById", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetOrganizationById", error);
                 reject(error);
             }
         });
@@ -62,14 +66,12 @@ export class OrganizationDB extends DB {
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from GetAllOrganizations", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from GetAllOrganizations", error);
                 reject(error);
             }
         });
@@ -89,19 +91,18 @@ export class OrganizationDB extends DB {
                 this.con.query(str, [org.name], (err, result) => {
                     if (!err) {
                         if (result.insertId > 0) {
+                            log.verbose("organization created", { orgName: org.name });
                             resolve(new Organization(result.insertId, org.name));
                         } 
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from CreateOrganization", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from CreateOrganization", error);
                 reject(error);
             }
         });
@@ -122,19 +123,18 @@ export class OrganizationDB extends DB {
                 this.con.query(str, [org.name,org.id], (err, result) => {
                     if (!err) {
                         if (result.affectedRows > 0) {
+                            log.verbose("organization updated", { orgName: org.name, orgId: org.id });
                             resolve(true);
                         } 
                         else { resolve(false); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error("database query error from UpdateOrganization", err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error("database try/catch error from UpdateOrganization", error);
                 reject(error);
             }
         });

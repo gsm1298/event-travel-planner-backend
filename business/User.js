@@ -2,6 +2,12 @@ import { Organization } from '../business/Organization.js';
 import { UserDB } from '../data_access/UserDB.js';
 import bcrypt from 'bcrypt';
 import speakeasy from 'speakeasy';
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    business : "User", //specify module where logs are from
+});
 
 /**
  * @Class User
@@ -75,6 +81,8 @@ export class User {
             digits: 6,
         });
 
+        log.verbose("totp code generated");
+
         return totpCode; // Return the generated token
     }
 
@@ -93,6 +101,8 @@ export class User {
             // Check if user was found
             if (!user) { return false; }
 
+            log.verbose("user attempted to login", { email: email, userId: user.id }); // audit log the user login
+
             // Check if password is correct
             const match = await bcrypt.compare(password, user.hashedPass)
 
@@ -100,9 +110,8 @@ export class User {
             if (match) { Object.assign(this, user); return true; }
             else { return false; }
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to check login");
+            log.error(error);
+            log.error(new Error("Error trying to check login"));
         } finally { db.close(); }
     }
 
@@ -122,7 +131,7 @@ export class User {
             if (!user) { return false; }
 
             if (!user.mfaSecret) { return false; } // No MFA secret set for user
-
+            log.verbose("user exists upon check, mfa does not", { userId: user.id, email: email });
             // Check if 2FA code is correct
             //const match = await bcrypt.compare(mfaCode, user.hashedMfaCode)
 
@@ -134,13 +143,14 @@ export class User {
                 step: 300 // Match the generation step
             });
 
+            log.verbose("user mfa token success", { userId: user.id, email: email });
+
             // If match, set user object to user object returned by db
             if (match) { Object.assign(this, user); return true; }
             else { return false; }
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to check login");
+            log.error(error);
+            log.error(new Error("Error trying to check login"));
         } finally { db.close(); }
     }
 
@@ -163,16 +173,17 @@ export class User {
         try {
             if (this.id) {
                 const success = await db.updateUser(this);
+                log.verbose("user updated on save request", { userId: this.id });
                 return success
             } else {
                 const userId = await db.createUser(this);
                 this.id = userId;  // Assign new ID after insertion
+                log.verbose("new user created on save request", { userId: this.id });
                 return this.userId ? true : false;
             }
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to save event");
+            log.error(error);
+            log.error(new Error("Error trying to save user"));
         } finally { db.close(); }
     }
 
@@ -188,9 +199,8 @@ export class User {
 
             return user;
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying get user by id");
+            log.error(error);
+            log.error(new Error("Error trying get user by id"));
         } finally { db.close(); }
     }
 
@@ -205,9 +215,8 @@ export class User {
 
             return users;
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying get all users");
+            log.error(error);
+            log.error(new Error("Error trying get all users"));
         } finally { db.close(); }
     }
 
@@ -223,9 +232,8 @@ export class User {
 
             return users;
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying get all users from org");
+            log.error(error);
+            log.error(new Error("Error trying get all users from org"));
         } finally { db.close(); }
     }
 
@@ -241,9 +249,8 @@ export class User {
 
             return users;
         } catch (error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying get all users in event");
+            log.error(error);
+            log.error(new Error("Error trying get all users in event"));
         } finally { db.close(); }
     }
 

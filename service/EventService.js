@@ -3,8 +3,14 @@ import { Event } from '../business/Event.js'; // Event model
 import { User } from '../business/User.js'; // User model
 import { AuthService } from './AuthService.js'; // Assuming you already have the AuthService
 import Joi from 'joi';
+import { logger } from '../service/LogService.mjs'; // logging
 import { Email } from '../business/Email.js';
 
+
+// Init child logger instance
+const log = logger.child({
+    service : "eventService", //specify module where logs are from
+});
 export class EventService {
     /**
      * @constructor
@@ -50,6 +56,7 @@ export class EventService {
             // Validate request body
             const { error } = schema.validate(req.body);
             if (error) {
+                log.error("error validating event request body", error);
                 return res.status(400).json({ error: error.details[0].message });
             }
 
@@ -78,11 +85,22 @@ export class EventService {
                 autoApproveThreshold
             );
             
+            log.verbose("creating new event", {
+                name: newEvent.name,
+                userId: newEvent.userId,  
+                financeMan: newEvent.financeMan,
+                startDate: newEvent.startDate,
+                endDate: newEvent.endDate,
+                userOrg: newEvent.userOrg,  
+                inviteLink: newEvent.inviteLink,
+                description: newEvent.description,
+                pictureLink: newEvent.inviteLink,
+                maxBudget: newEvent.maxBudget,
+                currentBudget: newEvent.currentBudget
+            })
+
             // Save event to the database
             const eventId = await newEvent.save();
-
-            // Update the event budget history
-            await newEvent.updateBudgetHistory(user.id);
 
             // Add attendees to the event
             if (req.body.attendees) {
@@ -92,7 +110,7 @@ export class EventService {
             // Respond with the created event ID
             res.status(201).json({ message: "Event created successfully", eventId });
         } catch (err) {
-            console.error("Error creating event:", err);
+            log.error("Error creating event:", err);
             res.status(500).json({ error: "Unable to create event." });
         }
     }
@@ -177,7 +195,7 @@ export class EventService {
                 res.status(404).json({ message: "Event not found" });
             }
         } catch (err) {
-            console.error("Error retrieving event:", err);
+            log.error("Error retrieving event:", err);
             res.status(500).json({ error: "Unable to fetch event." });
         }
     }
@@ -193,7 +211,7 @@ export class EventService {
             const events = await Event.getEvents(res.locals.user.id, res.locals.user.role);
             res.status(200).json(events);
         } catch (err) {
-            console.error("Error retrieving events:", err);
+            log.error("Error retrieving events:", err);
             res.status(500).json({ error: "Unable to fetch events." });
         }
     }
@@ -209,7 +227,7 @@ export class EventService {
             const events = await Event.findAll();
             res.status(200).json(events);
         } catch (err) {
-            console.error("Error retrieving all events:", err);
+            log.error("Error retrieving all events:", err);
             res.status(500).json({ error: "Unable to fetch events." });
         }
     }
@@ -252,7 +270,9 @@ export class EventService {
             }
 
             // Ensure the user is authorized to update this event
+
             if (event.createdBy.id !== user.id && event.financeMan.id !== user.id) {
+              log.verbose("user attempted to make unauthorized event modifications", { userId: user.id, event: event })
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
@@ -261,12 +281,12 @@ export class EventService {
             // Update event properties
             Object.assign(event, eventData);  // Update only the provided fields
 
+            // Update the event budget history
+            await event.updateEventHistory(user.id);
+
             const success = await event.save();  // Save updated event
 
             if (success && updatedBudget) {
-                // Update the event budget history
-                await event.updateBudgetHistory(user.id);
-
                 // Notify event planner of budget change.
                 const email = new Email('no-reply@jlabupch.uk', event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
                 await email.sendEmail();
@@ -275,13 +295,15 @@ export class EventService {
 
 
             if (success) {
+                log.verbose("Event updated successfully", { userId: user.id, event: event, eventData: eventData });
                 res.status(200).json({ message: "Event updated successfully" });
             }
             else {
+                log.verbose("Could not update event", { userId: user.id, event: event, eventData: eventData });
                 res.status(500).json({ message: "Could not update event" });
             }
         } catch (err) {
-            console.error("Error updating event:", err);
+            log.error("Error updating event:", err);
             res.status(500).json({ error: "Unable to update event." });
         }
     }
@@ -305,13 +327,15 @@ export class EventService {
 
             // Ensure the user is authorized to delete this event
             if (event.createdBy !== userId) {
+                log.verbose("Unauthorized user attempt to delete event", { userId: userId, event: event })
                 return res.status(403).json({ message: "Unauthorized: You cannot delete this event" });
             }
 
             await Event.delete(eventId);  // Delete the event from the database
+            log.verbose("Authorized user deleted event", { userId: userId, event: event })
             res.status(200).json({ message: "Event deleted successfully" });
         } catch (err) {
-            console.error("Error deleting event:", err);
+            log.error("Error deleting event:", err);
             res.status(500).json({ error: "Unable to delete event." });
         }
     }

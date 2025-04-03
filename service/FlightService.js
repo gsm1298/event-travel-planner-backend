@@ -6,17 +6,26 @@ import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
 import { Util } from '../business/Util.js';
 import Joi from 'joi';
+import { logger } from '../service/LogService.mjs';
 import Amadeus from 'amadeus';
+import { Email } from '../business/Email.js';
+import { Event } from '../business/Event.js';
 
-const amadeus = new Amadeus({
-    clientId: `${process.env.amadeusToken}`,
-    clientSecret: `${process.env.amadeusSecret}`
+// Init child logger instance
+const log = logger.child({
+    service : "flightService", //specify module where logs are from
+
 });
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
 const duffel = new Duffel({
     token: `${process.env.duffelToken}`
+})
+
+const amadeus = new Amadeus({
+    clientId: `${process.env.amadeusToken}`,
+    clientSecret: `${process.env.amadeusSecret}`
 })
 
 export class FlightService {
@@ -66,7 +75,7 @@ export class FlightService {
 
 
         } catch (err) {
-            console.error("Error at Flight Search:  ", err);
+            log.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
         }
 
@@ -140,7 +149,7 @@ export class FlightService {
 
             res.status(200).send(JSON.stringify(data));
         } catch (err) {
-            console.error("Error at Offer Search:  ", err);
+            log.error("Error at Offer Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
         }
     }
@@ -165,6 +174,7 @@ export class FlightService {
         try {
             user = await User.GetUserById(res.locals.user.id);
         } catch (error) {
+            log.error("uncaught user get request from flightservice");
             res.status(500).json({error: "Internal Server Error"});
         }
 
@@ -209,9 +219,10 @@ export class FlightService {
             await email.sendEmail();
 
             res.status(200).send(JSON.stringify(data));
+            log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
 
         } catch (error) {
-            console.error("Error at Booking: ", error);
+            log.error("Error at Booking: ", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
@@ -254,13 +265,20 @@ export class FlightService {
             flight.confirmation_code = "Confirmed"
             flight.save();
 
+            // Updated the event history if flight was approved
+            const event = await Event.findById(flight.event_id);
+            await event.updateEventHistory(res.locals.user.id, flight.flight_id);
+            
+
             // Send email to user
             // const email = new Email('no-reply@jlabupch.uk', user.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
             // await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
+            log.verbose("flight booked", { flightID: flight.flight_id });
+
         } catch (error) {
-            console.error("Error at Booking: ", error);
+            log.error("Error at Booking: ", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
@@ -280,7 +298,7 @@ export class FlightService {
                 res.status(400).json({ message: "Flights not found" });
             }
         } catch (error) {
-            console.error("Error retrieving flights for event:", error);
+            log.error("Error retrieving flights for event:", error);
             res.status(500).json({ error: "Unable to fetch flights" });
         }
     }

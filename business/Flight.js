@@ -1,4 +1,10 @@
 import { FlightDB } from "../data_access/FlightDB.js";
+import { logger } from '../service/LogService.mjs';
+
+// Init child logger instance
+const log = logger.child({
+    business : "flight", //specify module where logs are from
+});
 
 /**
  * @Class Flight
@@ -19,12 +25,14 @@ export class Flight {
      * @param {String} seat_letter,
      * @param {String} confirmation_code,
      * @param {String} flight_number,
+     * @param {String} order_id
+     * @param {Integer} event_id
      */
     constructor(
         flight_id = null, attendee_id = null, price = null, depart_time = null,
         depart_loc = null, arrive_time = null, arrive_loc = null, status = null, approved_by = null,
         seat_num = null, seat_letter = null, confirmation_code = null, flight_number = null, 
-        order_id = null
+        order_id = null, event_id = null
     ){
         this.flight_id = flight_id,
         this.attendee_id = attendee_id,
@@ -39,7 +47,8 @@ export class Flight {
         this.seat_letter = seat_letter,
         this.confirmation_code = confirmation_code,
         this.flight_number = flight_number,
-        this.order_id = order_id
+        this.order_id = order_id,
+        this.event_id = event_id
     }
 
     /**
@@ -66,8 +75,8 @@ export class Flight {
                 return id;
             }
         } catch (error) {
-            console.error(error);
-            throw new Error("Error attempting to insert/save event");
+            log.error(error);
+            log.error(newError("Error attempting to insert/save event"));
         }
 
     }
@@ -83,8 +92,8 @@ export class Flight {
         try {
             return await db.getAllFlightsForEvent(eventID);
         } catch(error) {
-            console.error(error);
-            throw new Error("Error grabbing flights by event ID");
+            log.error(error);
+            log.error(newError("Error grabbing flights by event ID"));
         } finally {
             db.close();
         }
