@@ -11,7 +11,7 @@ const log = logger.child({
     dataAccess : "flightDb", //specify module where logs are from
 });
 
-const baseEventQuery =
+const baseQuery =
 `
     SELECT
         flight.flight_id, flight.attendee_id, flight.price, flight.depart_time,
@@ -111,7 +111,7 @@ export class FlightDB extends DB {
     getFlight(flightID) {
         return new Promise((resolve, reject) => {
             try {
-                const query = baseEventQuery + `WHERE flight_id = ?;`;
+                const query = baseQuery + `WHERE flight_id = ?;`;
 
                 this.con.query(query, [flightID], (error, result) => {
                     if(!error) {
@@ -145,7 +145,7 @@ export class FlightDB extends DB {
     getAllFlightsForEvent(eventID) {
         return new Promise((resolve, reject) => {
             try {
-                const query = baseEventQuery +
+                const query = baseQuery +
                 `
                     WHERE attendee.event_id = ?
                 `;

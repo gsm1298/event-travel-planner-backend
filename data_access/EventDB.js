@@ -547,4 +547,49 @@ export class EventDB extends DB {
             }
         });
     }
+
+    /**
+     * Get all events from the database
+     * @param {Integer} orgID
+     * @returns {Promise<Event[]>} Array of Event objects
+     */
+    getPastEvents(orgID) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = baseEventQuery;
+
+                this.con.query(query, (err, rows) => {
+                    if (!err) {
+                         // Map the database rows to Event objects
+                         const events = rows.map(row => new Event(
+                            row.event_id,
+                            row.name,
+                            row.destination_code,
+                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
+                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            row.start_date,
+                            row.end_date,
+                            new Organization(row.org_id,row.org_name),
+                            row.invite_link,
+                            row.description,
+                            row.picture_link,
+                            row.max_budget,
+                            row.current_budget,
+                            Boolean(row.autoapprove.readUIntLE(0, 1)),
+                            row.autoapprove_threshold
+                        ));
+                        
+                        resolve(events);
+                    } 
+                    else {
+                        log.error("database query error from getAllEvents", err);
+                        reject(err);
+                    }
+                });
+            } catch(error) {
+                log.error("database try/catch error from getAllEvents", error);
+                reject(error);
+            }
+        });
+    }
 }

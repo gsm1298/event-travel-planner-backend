@@ -259,7 +259,6 @@ export class FlightService {
         var input = req.body;
 
         try {
-            console.log(input);
             var flight = await Flight.getFlightByID(input.flightID);
             if(!flight) {
                 return res.status(404).json({ error: "Flight not found" });
@@ -277,10 +276,13 @@ export class FlightService {
             // })
 
             // Update DB record
-            flight.status = 2; // Need to double check
-            flight.order_id = "TEMP"
-            flight.approved_by = res.locals.user.id
-            flight.confirmation_code = "Confirmed"
+            if(input.selection == 0) {
+                flight.status = 2; // Need to double check
+            } else {
+                flight.order_id = "TEMP"
+                flight.approved_by = res.locals.user.id
+                flight.confirmation_code = "Confirmed"
+            }
             flight.save();
 
             // Updated the event history if flight was approved
