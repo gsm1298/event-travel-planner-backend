@@ -17,6 +17,7 @@ const log = logger.child({
 
 });
 
+//Initialize env config and load in env for appropriate modules
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
 const duffel = new Duffel({
@@ -28,6 +29,7 @@ const amadeus = new Amadeus({
     clientSecret: `${process.env.amadeusSecret}`
 })
 
+// Flight Service Class
 export class FlightService {
     /**
      * @constructor
@@ -50,9 +52,11 @@ export class FlightService {
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
+        // Init some variables
         var input = req.body;
         var origin_airport;
 
+        // JOI Validation
         const schema = Joi.object({
             lat: Joi.number().unsafe().required(),
             long: Joi.number().unsafe().required(),
@@ -65,15 +69,14 @@ export class FlightService {
             return res.status(400).json({ error: error.details[0].message });
         }
 
+        // Call to Amadeus to return list of closest airport codes
+        // Accepts in a longitude and latitude value provided by Google Places API from Front
         try {
-            // Call to Amadeus to return list of closest airport codes
             await amadeus.referenceData.locations.airports.get({
                 latitude: input.lat, longitude: input.long
             }).then(resp => {
                 origin_airport = resp.data[0].iataCode;
             })
-
-
         } catch (err) {
             log.error("Error at Flight Search:  ", err);
             return res.status(500).json({ error: "Internal server error" });
@@ -85,7 +88,8 @@ export class FlightService {
 
         try {
             // Generate offer search and call Duffel api
-            if(input.type == "0") {
+            // Generate one-way or round trip based on input type value
+            if(input.type == 0) {
                 offers = await duffel.offerRequests.create({
                     slices: [
                         {
@@ -101,36 +105,45 @@ export class FlightService {
                     ],
                     cabin_class: "economy"
                 });
-            } 
+            } else if (input.type == 1) {
+                offers = await duffel.offerRequests.create({
+                    slices: [
+                        {
+                            origin: origin_airport,
+                            destination: input.destination,
+                            departure_date: input.departure_date
+                        },
+                        {
+                            origin: input.destination,
+                            destination: origin_airport,
+                            departure_date: input.return_date
+                        }
+                    ],
+                    passengers: [
+                        {
+                            type: "adult"
+                        }
+                    ],
+                    cabin_class: "economy"
+                })
+            }
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
                 if(o.payment_requirements.payment_required_by == null) {
                     return;
                 }
-                
-                // var itinerary = [];
 
-                // o.slices[0].segments.forEach((s) => {
-                //     itinerary.push({
-                //         origin_code: s.origin.iata_code,
-                //         origin_name: s.origin.name,
-                //         destination_code: s.destination.iata_code,
-                //         destination_name: s.destination.name,
-                //         duration: (s.duration).slice(2),
-                //         terminal: s.origin_terminal,
-                //         departure_date: (s.departing_at).slice(0, 10),
-                //         departure_time: (s.departing_at).slice(11,16),
-                //         arrival_time: (s.arriving_at).slice(11,16),
-                //         flight_num: o.slices[0].segments[0].operating_carrier_flight_number
-                //     })
-                // })
-
+                // Init empty array to hold parsed slice data
                 var slices = []
+    
+                // Stop count for Nonstop/Connecting
+                var stops = o.slices[0].segments.length; 
+
+                // Call Utils to parse
                 o.slices.forEach((s) => slices.push(Util.parseSlice(s)));
 
-                var stops = o.slices[0].segments.length;
-
+                // Format Duffel data
                 data.push({
                     offer_id: o.id,
                     passenger_ids: o.passengers[0].id,
@@ -157,6 +170,10 @@ export class FlightService {
     // Place Flight on Hold
     /**@type {express.RequestHandler} */
     async hold(req, res) {
+        var input = req.body;
+        var user;
+
+        // JOI Validation
         const schema = Joi.object({
             offerID: Joi.string().required(),
             passID: Joi.string().required(),
@@ -168,9 +185,6 @@ export class FlightService {
             return res.status(400).json({ error: error.details[0].message });
         }
 
-        var input = req.body;
-        var user;
-
         try {
             user = await User.GetUserById(res.locals.user.id);
         } catch (error) {
@@ -179,9 +193,11 @@ export class FlightService {
         }
 
         try {
+            // Create Datetime object for DB insert
             var deptdate = new Date((input.flight.date).slice(0,11) + input.flight.depart_time + ":00.000Z");
             var arrdate = new Date((input.flight.date).slice(0,11) + input.flight.arrive_time + ":00.000Z");
 
+            // Create hold on given flight offer
             var confirmation = await duffel.orders.create({
                 selected_offers: [input.offerID],
                 type: "hold",
@@ -199,6 +215,7 @@ export class FlightService {
                 ]
             })
 
+            // Formatted response data from Duffel
             var data = {
                 id: confirmation.data.id,
                 offer_id: confirmation.data.offer_id,
@@ -207,14 +224,13 @@ export class FlightService {
                 guarantee: confirmation.data.payment_status.price_guarantee_expires_at
             }
 
-            
-
+            // Insert new hold into DB
             var newHold = new Flight(null, res.locals.user.id, input.flight.price, deptdate, 
             input.flight.depart_loc, arrdate, input.flight.arrive_loc, 1, 
             null, null, null, null, null, data.id);
             newHold.save();
 
-            // Send email to user
+            // Notify user via email
             const email = new Email('no-reply@jlabupch.uk', user.email, "Flight on Hold", `Your flight to ${data.destination_airport} has been placed on hold.`);
             await email.sendEmail();
 
@@ -249,7 +265,8 @@ export class FlightService {
                 return res.status(404).json({ error: "Flight not found" });
             }
 
-            // Payment Creation
+            // UNCOMMENT TO ENABLE PAYMENT THROUGH DUFFLE
+            // Payment Creation 
             // var confirmation = await duffel.payments.create({
             //     'order_id': input.id,
             //     'payment': {
@@ -259,6 +276,7 @@ export class FlightService {
             //     }
             // })
 
+            // Update DB record
             flight.status = 2; // Need to double check
             flight.order_id = "TEMP"
             flight.approved_by = res.locals.user.id
