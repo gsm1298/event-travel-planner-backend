@@ -38,6 +38,12 @@ export class EventService {
      */
     async createEvent(req, res) {
         try {
+            // Check if user is an event planner
+            if (!AuthService.authorizer(req, res, ["Event Planner"])) {
+                log.verbose("unauthorized user attempted to create an event", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             // Joi schema for validation
             const schema = Joi.object({
                 name: Joi.string().required(),
@@ -123,6 +129,12 @@ export class EventService {
      */
     async inviteNewAttendee(req, res) {
         try {
+            // Check if user is an event planner
+            if (!AuthService.authorizer(req, res, ["Event Planner"])) {
+                log.verbose("unauthorized user attempted to invite an attendee", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const userOrg = res.locals.user.org;  // user organization from authenticator middleware
             // Joi schema for validation
             const schema = Joi.object({
@@ -183,11 +195,14 @@ export class EventService {
             // Get the event by ID
             const event = await Event.findById(eventId);
 
-            // Get event history
-            const eventHistory = await Event.getEventHistory(eventId);
+            // Check if user is an event planner or finance manager to get event history
+            if (!AuthService.authorizer(req, res, ["Event Planner", "Finance Manager"])) {
+                // Get event history
+                const eventHistory = await Event.getEventHistory(eventId);
 
-            // Add history to the event object
-            event.history = eventHistory;
+                // Add history to the event object
+                event.history = eventHistory;
+            }
 
             if (event) {
                 res.status(200).json(event);

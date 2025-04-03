@@ -10,6 +10,7 @@ import { logger } from '../service/LogService.mjs';
 import Amadeus from 'amadeus';
 import { Email } from '../business/Email.js';
 import { Event } from '../business/Event.js';
+import { AuthService } from './AuthService.js';
 
 // Init child logger instance
 const log = logger.child({
@@ -52,6 +53,13 @@ export class FlightService {
     // Search for Flight
     /**@type {express.RequestHandler} */
     async search(req, res) {
+
+        // Check if the user is an attendee
+        if (!AuthService.authorizer(req, res, ["Attendee"])) {
+            log.verbose("unauthorized user attempted to search for a flight", { userId: res.locals.user.id });
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+
         // Init some variables
         var input = req.body;
         var origin_airport;
@@ -170,6 +178,12 @@ export class FlightService {
     // Place Flight on Hold
     /**@type {express.RequestHandler} */
     async hold(req, res) {
+        // Check if the user is an attendee
+        if (!AuthService.authorizer(req, res, ["Attendee"])) {
+            log.verbose("unauthorized user attempted to hold a flight", { userId: res.locals.user.id });
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+        
         var input = req.body;
         var user;
 
@@ -246,6 +260,13 @@ export class FlightService {
     // Book Flight
     /**@type {express.RequestHandler} */
     async booking(req, res) {
+
+        // Check if the user is a finance Manager
+        if (!AuthService.authorizer(req, res, ["Finance Manager"])) {
+            log.verbose("unauthorized user attempted to book a flight", { userId: res.locals.user.id });
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+        
         // const schema = Joi.object({
         //     id: Joi.string().required(),
         //     price: Joi.number().positive().required()

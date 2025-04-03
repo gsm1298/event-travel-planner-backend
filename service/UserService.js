@@ -1,6 +1,7 @@
 import { User } from "../business/User.js";
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
+import { AuthService } from './AuthService.js';
 
 // Init child logger instance
 const log = logger.child({
@@ -31,6 +32,11 @@ export class UserService {
     */
     async createUser(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Admin"])) {
+                log.verbose("unauthorized user attempted to create a user", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
 
             // Define Joi schemas
             const schema = Joi.object({
@@ -75,6 +81,12 @@ export class UserService {
     /** @type {express.RequestHandler} */
     async updateUser(req, res) {
         try {
+
+            // Check if user is admin or the user themselves
+            if (!AuthService.authorizer(req, res, ["Admin"]) && res.locals.user.id != req.params.id) {
+                log.verbose("unauthorized user attempted to update a user", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
 
              // Define Joi schemas
              const schema = Joi.object({
