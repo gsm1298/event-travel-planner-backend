@@ -216,5 +216,25 @@ export class AuthService {
             log.error("Error at Authenticator:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }   
-}
+    }
+
+    /**
+     * function that checks if the user is authorized to do something.
+     * @param {express.Request} req - The request object
+     * @param {express.Response} res - The response object
+     * @param {Array<String>} requiredRoles - The roles required to perform the action
+     * @returns {Boolean} - True if the user is authorized, false otherwise
+     */
+    static authorizer(req, res, requiredRoles) {
+        try {
+            // Check if the user is a requried role
+            if ( !requiredRoles.includes(res.locals.user.role) ){
+                return false
+            }
+            return true
+        } catch (err) {
+            log.error("Error at Authorizer:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }
 }

@@ -3,6 +3,7 @@ import { Organization } from '../business/Organization.js';
 import { User } from '../business/User.js';
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
+import { AuthService } from './AuthService.js';
 
 // Init child logger instance
 const log = logger.child({
@@ -29,6 +30,12 @@ export class OrganizationService {
     /** @type {express.RequestHandler} */
     async createOrganization(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Admin"])) {
+                log.verbose("unauthorized user attempted to create an organization", { userId: user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             // Validate request body
             const schema = Joi.object({
                 name: Joi.string().min(3).required()
@@ -92,6 +99,12 @@ export class OrganizationService {
     /** @type {express.RequestHandler} */
     async updateOrganization(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Admin"])) {
+                log.verbose("unauthorized user attempted to update an organization", { userId: res.locals.user.id, orgId: req.params.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             // Validate request body
             const schema = Joi.object({
                 name: Joi.string().min(3).required()
