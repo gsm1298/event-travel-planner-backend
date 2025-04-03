@@ -1,18 +1,27 @@
 export class Util {
-    static async gen_token() {
-        var formData = new URLSearchParams();
-        formData.append('client_id', '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl'),
-        formData.append('client_secret', 'cU8Nbf9H15J4fGRv'),
-        formData.append('grant_type', 'client_credentials')
-
-        var resp = await fetch ('https://test.api.amadeus.com/v1/security/oauth2/token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: formData.toString()
+    static parseSlice(slice) {
+        var stops = [];
+        stops = slice.segments.foreach(s => {
+            stops.push({
+                origin: s.origin.iata_code,
+                origin_name: s.origin.name,
+                destination: s.destination.iata_code,
+                destination_name: s.destination.name,
+                duration: (s.duration).slice(2),
+                terminal: s.origin_terminal,
+                departure_date: (s.departing_at).slice(0, 10),
+                departure_time: (s.departing_at).slice(11,16),
+                arrival_time: (s.arriving_at).slice(11,16),
+                flight_num: o.slices[0].segments[0].operating_carrier_flight_number
+            })
         })
 
-        return resp.json();
+        return ret = {
+            class: slice.fare_brand_name,
+            duration: slice.duration,
+            origin: slice.origin.iata_code,
+            destination: slice.destination.iata_code,
+            itinerary: stops
+        }
     }
 }

@@ -9,8 +9,8 @@ import Joi from 'joi';
 import Amadeus from 'amadeus';
 
 const amadeus = new Amadeus({
-    clientId: '3D0Z9FuwA0PftIzpm7BskjDPodD1LdXl',
-    clientSecret: 'cU8Nbf9H15J4fGRv'
+    clientId: `${process.env.amadeusToken}`,
+    clientSecret: `${process.env.amadeusSecret}`
 });
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
@@ -70,28 +70,29 @@ export class FlightService {
             return res.status(500).json({ error: "Internal server error" });
         }
 
-        // Instantiate offers before the try/catch block for scoping
+        // Instantiate vars before the try/catch block for scoping
         var offers;
+        var data = [];
 
         try {
             // Generate offer search and call Duffel api
-            offers = await duffel.offerRequests.create({
-                slices: [
-                    {
-                        origin: origin_airport,
-                        destination: input.destination,
-                        departure_date: input.departure_date
-                    }
-                ],
-                passengers: [
-                    {
-                        type: "adult"
-                    }
-                ],
-                cabin_class: "economy"
-            });
-
-            var data = [];
+            if(input.type == "0") {
+                offers = await duffel.offerRequests.create({
+                    slices: [
+                        {
+                            origin: origin_airport,
+                            destination: input.destination,
+                            departure_date: input.departure_date
+                        }
+                    ],
+                    passengers: [
+                        {
+                            type: "adult"
+                        }
+                    ],
+                    cabin_class: "economy"
+                });
+            } 
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
@@ -99,22 +100,25 @@ export class FlightService {
                     return;
                 }
                 
-                var itinerary = [];
+                // var itinerary = [];
 
-                o.slices[0].segments.forEach((s) => {
-                    itinerary.push({
-                        origin_code: s.origin.iata_code,
-                        origin_name: s.origin.name,
-                        destination_code: s.destination.iata_code,
-                        destination_name: s.destination.name,
-                        duration: (s.duration).slice(2),
-                        terminal: s.origin_terminal,
-                        departure_date: (s.departing_at).slice(0, 10),
-                        departure_time: (s.departing_at).slice(11,16),
-                        arrival_time: (s.arriving_at).slice(11,16),
-                        flight_num: o.slices[0].segments[0].operating_carrier_flight_number,
-                    })
-                })
+                // o.slices[0].segments.forEach((s) => {
+                //     itinerary.push({
+                //         origin_code: s.origin.iata_code,
+                //         origin_name: s.origin.name,
+                //         destination_code: s.destination.iata_code,
+                //         destination_name: s.destination.name,
+                //         duration: (s.duration).slice(2),
+                //         terminal: s.origin_terminal,
+                //         departure_date: (s.departing_at).slice(0, 10),
+                //         departure_time: (s.departing_at).slice(11,16),
+                //         arrival_time: (s.arriving_at).slice(11,16),
+                //         flight_num: o.slices[0].segments[0].operating_carrier_flight_number
+                //     })
+                // })
+
+                var slices = []
+                o.slices.forEach((s) => slices.push(Util.parseSlice(s)));
 
                 var stops = o.slices[0].segments.length;
 
@@ -129,8 +133,9 @@ export class FlightService {
                     logo: o.owner.logo_symbol_url,
                     flight_type: stops == 1 ? "Nonstop" : "Connecting",
                     flight_class: o.slices[0].fare_brand_name,
-                    itinerary: itinerary
+                    details: slices
                 })
+
             });
 
             res.status(200).send(JSON.stringify(data));
@@ -234,7 +239,6 @@ export class FlightService {
             }
 
             // Payment Creation
-
             // var confirmation = await duffel.payments.create({
             //     'order_id': input.id,
             //     'payment': {
