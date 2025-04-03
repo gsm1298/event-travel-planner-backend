@@ -22,6 +22,7 @@ export class EventService {
         // Define all routes for event operations
         this.app.post('/events', this.createEvent);
         this.app.post('/events/invite/new', this.inviteNewAttendee);
+        this.app.post('/events/invite', this.inviteAttendees);
         this.app.get('/events/:id', this.getEventById);
         this.app.get('/events', this.getEvents);
         this.app.put('/events/:id', this.updateEvent);
@@ -122,6 +123,58 @@ export class EventService {
     }
 
     /**
+     * Invite an existing attendees to an event
+     * @param {express.Request} req
+     * @param {express.Response} res
+     * @returns {Promise<void>}
+     */
+    async inviteAttendees(req, res) {
+        try {
+            // Check if user is an event planner
+            if (!AuthService.authorizer(req, res, ["Event Planner"])) {
+                log.verbose("unauthorized user attempted to invite attendees", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Joi schema for validation
+            const schema = Joi.object({
+                eventId: Joi.number().integer().required(),
+                attendees: Joi.array().items(Joi.object({id: Joi.number().integer().required()})).required()
+            });
+
+            // Validate request body
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
+            // Use data from the request body
+            const { eventId, attendees } = req.body;
+
+            // Retrieve the event by ID
+            const event = await Event.findById(eventId);
+            if (!event) {
+                return res.status(404).json({ message: "Event not found" });
+            }
+
+            // Ensure the user is authorized to invite attendees to this event
+            if (event.createdBy.id !== res.locals.user.id) {
+                log.verbose("unauthorized user attempted to invite an attendees to an event", { userId: res.locals.user.id, eventId: event.id });
+                return res.status(403).json({ message: "Unauthorized: You cannot invite attendees to this event" });
+            }
+
+            // Add the attendee to the event
+            await event.addAttendees(attendees);
+
+            res.status(200).json({ message: "Attendee invited successfully" });
+
+        } catch (err) {
+            log.error("Error inviting attendee:", err);
+            res.status(500).json({ error: "Unable to invite attendee." });
+        }
+    }
+
+    /**
      * Invite a new attendee to an event
      * @param {express.Request} req
      * @param {express.Response} res
@@ -131,7 +184,7 @@ export class EventService {
         try {
             // Check if user is an event planner
             if (!AuthService.authorizer(req, res, ["Event Planner"])) {
-                log.verbose("unauthorized user attempted to invite an attendee", { userId: res.locals.user.id })
+                log.verbose("unauthorized user attempted to invite a new attendee", { userId: res.locals.user.id });
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
@@ -159,6 +212,7 @@ export class EventService {
 
             // Ensure the user is authorized to invite attendees to this event
             if (event.createdBy.id !== res.locals.user.id) {
+                log.verbose("unauthorized user attempted to invite an new attendee to an event", { userId: res.locals.user.id, eventId: event.id });
                 return res.status(403).json({ message: "Unauthorized: You cannot invite attendees to this event" });
             }
 
@@ -175,10 +229,10 @@ export class EventService {
             // Add the new attendee to the event
             await event.addNewAttendee(newAttendee);
 
-            res.status(200).json({ message: "Attendee invited successfully" });
+            res.status(200).json({ message: "New attendee invited successfully" });
         } catch (err) {
-            console.error("Error inviting attendee:", err);
-            res.status(500).json({ error: "Unable to invite attendee." });
+            console.error("Error inviting new attendee:", err);
+            res.status(500).json({ error: "Unable to invite new attendee." });
         }
     }
 
