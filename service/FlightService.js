@@ -69,7 +69,8 @@ export class FlightService {
             lat: Joi.number().unsafe().required(),
             long: Joi.number().unsafe().required(),
             departure_date: Joi.string().isoDate().required(),
-            destination: Joi.string().required()
+            destination: Joi.string().required(),
+            type: Joi.number().required()
         });
 
         const { error } = schema.validate(req.body);
@@ -98,7 +99,7 @@ export class FlightService {
             // Generate offer search and call Duffel api
             // Generate one-way or round trip based on input type value
             if(input.type == 0) {
-                offers = await duffel.offerRequests.create({
+                await duffel.offerRequests.create({
                     slices: [
                         {
                             origin: origin_airport,
@@ -112,7 +113,9 @@ export class FlightService {
                         }
                     ],
                     cabin_class: "economy"
-                });
+                }).then(resp =>
+                    offers = resp
+                )
             } else if (input.type == 1) {
                 offers = await duffel.offerRequests.create({
                     slices: [
@@ -134,7 +137,10 @@ export class FlightService {
                     ],
                     cabin_class: "economy"
                 })
+            } else {
+                throw new Error("Invalid Flight Type!");
             }
+
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
@@ -154,15 +160,15 @@ export class FlightService {
                 // Format Duffel data
                 data.push({
                     offer_id: o.id,
-                    passenger_ids: o.passengers[0].id,
+                    passenger_id: o.passengers[0].id,
                     airline: o.owner.name,
                     price: o.total_amount,
                     duration: o.slices[0].duration,
                     destination_airport: o.slices[0].destination.iata_code,
                     origin_airport: o.slices[0].origin.iata_code,
                     logo: o.owner.logo_symbol_url,
-                    flight_type: stops == 1 ? "Nonstop" : "Connecting",
                     flight_class: o.slices[0].fare_brand_name,
+                    flight_type: slices[0].flight_type,
                     details: slices
                 })
 
