@@ -1,7 +1,8 @@
 export class Util {
     static parseSlice(slice) {
         var stops = [];
-        stops = slice.segments.foreach(s => {
+
+        slice.segments.forEach(s => {
             stops.push({
                 origin: s.origin.iata_code,
                 origin_name: s.origin.name,
@@ -12,15 +13,17 @@ export class Util {
                 departure_date: (s.departing_at).slice(0, 10),
                 departure_time: (s.departing_at).slice(11,16),
                 arrival_time: (s.arriving_at).slice(11,16),
-                flight_num: o.slices[0].segments[0].operating_carrier_flight_number
+                flight_num: s.operating_carrier_flight_number,
+                carrier: s.operating_carrier.name
             })
         })
 
-        return ret = {
+        return {
             class: slice.fare_brand_name,
             duration: slice.duration,
             origin: slice.origin.iata_code,
             destination: slice.destination.iata_code,
+            flight_type: stops.length == 1 ? "Non-Stop"  : "Connecting",
             itinerary: stops
         }
     }
