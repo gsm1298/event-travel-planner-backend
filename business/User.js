@@ -77,7 +77,7 @@ export class User {
         const totpCode = speakeasy.totp({
             secret: this.mfaSecret.base32,
             encoding: 'base32',
-            step: 300, // Time step in seconds, 15 minutes
+            step: 60, // Time step in seconds, 1 minute
             digits: 6,
         });
 
@@ -140,7 +140,8 @@ export class User {
                 secret: user.mfaSecret.base32,
                 encoding: "base32",
                 token: mfaCode,
-                step: 300 // Match the generation step
+                step: 60, // Match the generation step (1 minute)
+                window: 1, // Allow a +/- 1 step (so 180s total: 60s before, 60s current, 60s after)
             });
 
             log.verbose("user mfa token success", { userId: user.id, email: email });
