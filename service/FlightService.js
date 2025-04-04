@@ -136,7 +136,9 @@ export class FlightService {
                         }
                     ],
                     cabin_class: "economy"
-                })
+                }).then(resp =>
+                    offers = resp
+                )
             } else {
                 throw new Error("Invalid Flight Type!");
             }
