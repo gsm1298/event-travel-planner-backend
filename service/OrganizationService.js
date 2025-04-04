@@ -4,10 +4,11 @@ import { User } from '../business/User.js';
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
 import { AuthService } from './AuthService.js';
+import { parse } from 'csv/sync'; // Import the CSV parser
 
 // Init child logger instance
 const log = logger.child({
-    service : "organizationService", //specify module where logs are from
+    service: "organizationService", //specify module where logs are from
 });
 
 export class OrganizationService {
@@ -24,6 +25,7 @@ export class OrganizationService {
         this.app.get('/organization/:id', this.getOrganizationById);
         this.app.get('/organizations', this.getAllOrganizations);
         this.app.put('/organization/:id', this.updateOrganization);
+        this.app.post('/organization/:id/importUsers', this.importUsers);
         //this.app.delete('/organization/:id', this.deleteOrganization);
     }
 
@@ -63,6 +65,66 @@ export class OrganizationService {
             }
         } catch (err) {
             console.error("Error at Create Organization:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    }
+
+    /** @type {express.RequestHandler} */
+    async importUsers(req, res) {
+        try {
+
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Admin"])) {
+                log.verbose("unauthorized user attempted to import users", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // joi validation for file data
+            const schema = Joi.object({
+                fileName: Joi.string().required(),
+                fileType: Joi.string().valid("text/csv").required(),
+                fileData: Joi.string().required()
+            });
+
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
+            const { fileName, fileType, fileData } = req.body;
+
+            // Decode Base64 data into a Buffer
+            const buffer = Buffer.from(fileData, "base64");
+            const csvContent = buffer.toString("utf-8");
+
+            // Parse CSV data
+            const records = parse(csvContent, {
+                columns: true,      // First row as header
+                skip_empty_lines: true,
+                trim: true,
+            });
+
+            // joi validation for csv data
+            const csvSchema = Joi.object({
+                firstName: Joi.string().required(),
+                lastName: Joi.string().required(),
+                email: Joi.string().email().required(),
+                phoneNum: Joi.string().required(),
+                gender: Joi.string().valid('m', 'f').required(),
+                title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
+                dob: Joi.date().required()
+            });
+
+            // Validate each record against the schema  
+            for (const record of records) {
+                const { error } = csvSchema.validate(record);
+                if (error) {
+                    return res.status(400).json({ error: `Invalid record in CSV: ${error.details[0].message}` });
+                }
+            }
+
+        } catch (err) {
+            log.error("Error at Import Users:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }
     }
