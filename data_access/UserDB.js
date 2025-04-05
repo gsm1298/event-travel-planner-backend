@@ -30,9 +30,9 @@ export class UserDB extends DB {
     }
 
     /**
-     * Create a new event in the database
+     * Create a new user in the database
      * @param {User} user
-     * @returns {Promise<Integer>} The ID of the inserted event
+     * @returns {Promise<Integer>} The ID of the inserted user
      */
     createUser(user) {
         return new Promise((resolve, reject) => {
@@ -57,7 +57,7 @@ export class UserDB extends DB {
                         `;
                         params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, 1]; // Default to 1 (Attendee)
                     }
-                } else { reject('Organization ID set'); }
+                } else { reject('Organization ID not set'); }
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {

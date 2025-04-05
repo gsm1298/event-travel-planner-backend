@@ -112,7 +112,8 @@ export class OrganizationService {
                 phoneNum: Joi.string().required(),
                 gender: Joi.string().valid('m', 'f').required(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
-                dob: Joi.date().required()
+                dob: Joi.date().required(),
+                role: Joi.string().valid('Attendee', 'Event Planner', 'Finance Manager').required(),
             });
 
             // Validate each record against the schema  
@@ -122,6 +123,18 @@ export class OrganizationService {
                     return res.status(400).json({ error: `Invalid record in CSV: ${error.details[0].message}` });
                 }
             }
+
+            // Create users from CSV data
+            const users = records.map(record => new User
+                (
+                    null, record.firstName, record.lastName, record.email, record.phoneNum,
+                    record.gender, record.title, null, {id: req.params.id}, null, null, null, null, record.dob
+                )
+            );
+
+            await User.importUsers(users);
+
+            return res.status(200).json({ message: "Users imported successfully" });
 
         } catch (err) {
             log.error("Error at Import Users:  ", err);

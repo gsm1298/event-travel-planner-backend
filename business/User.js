@@ -6,7 +6,7 @@ import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({
-    business : "User", //specify module where logs are from
+    business: "User", //specify module where logs are from
 });
 
 /**
@@ -50,7 +50,7 @@ export class User {
         this.role = role;
         this.hashedPass = hashedPass;
         this.mfaSecret = mfaSecret;
-        this.mfaEnabled= mfaEnabled;
+        this.mfaEnabled = mfaEnabled;
         this.dob = dob;
     }
 
@@ -185,6 +185,48 @@ export class User {
         } catch (error) {
             log.error(error);
             log.error(new Error("Error trying to save user"));
+        } finally { db.close(); }
+    }
+
+    /**
+     *  Imports users from an array of user objects
+     *  @param {User[]} users - Array of user objects to import
+     *  @returns {Promise<void>}
+     *  @throws {Error}
+     */
+    static async importUsers(users) {
+        const db = new UserDB();
+        try {
+            users.forEach(async (user) => {
+                // Check if user already exists
+                const existingUser = await db.GetUserByEmail(user.email);
+                if (existingUser) {
+                    log.verbose("user already exists (user import)", { email: user.email });
+                }
+                else { // User does not exist, create new user
+                    log.verbose("user does not exist, creating new user (user import)", { email: user.email });
+
+                    // Create temp password
+                    var tempPass = await User.hashPass(user.email + Date.now() + Math.random() + user.org.id);
+                    tempPass = tempPass.substring(0, 12);
+                    user.pass = tempPass;
+                    user.hashedPass = await User.hashPass(tempPass);
+
+                    const id = await db.createUser(user);
+
+                    // Check if user was created successfully
+                    if (id > 0) {
+                        log.verbose("user succefully created (user import)", { email: user.email });
+                        const email = new Email('no-reply@jlabupch.uk', user.email, "Account Created", `An account has been created for you.\n\nYour temporary password is: ${user.pass}`);
+                        await email.sendEmail();
+                    } else {
+                        log.error("user could not be created (user import)", { email: user.email });
+                    }
+                }
+            });
+        } catch (error) {
+            log.error(error);
+            log.error(new Error("Error trying to import users"));
         } finally { db.close(); }
     }
 
