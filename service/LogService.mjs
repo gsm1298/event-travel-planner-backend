@@ -7,7 +7,26 @@ const { combine, timestamp, json, colorize, errors } = winston.format;
 //general logging formatting and file handling
 
 const consolePrintf = winston.format.printf((info) => {
-    return `[${info.timestamp}] [${info.level.toUpperCase()}]: ${info.message}, Stack Trace: ${info.stack}`;
+    const logParts = [`[${info.timestamp}] [${info.level.toUpperCase()}]`];
+
+    if (info.method) {
+        logParts.push(info.method);
+    }
+
+    if (info.message) {
+        logParts.push(info.message);
+    }
+
+    if (info.url) {
+        logParts.push(`URL: ${info.url}`);
+    }
+
+    if (info.stack) {
+        logParts.push(`Stack Trace: ${info.stack}`);
+    }
+
+    return logParts.join(' '); // Join all populated parts with a space
+
 });
 
 const consoleFormat = combine(
@@ -44,7 +63,7 @@ const morganFormat = combine(
 //logging configuration
 const customconfig = {
     transports: [ //where the outputs get sent to
-        new transports.Console({ level: "http", format: consoleFormat }), //console output as formatted by the consoleFormat custom format
+        new transports.Console({ level: "silly", format: consoleFormat }), //console output as formatted by the consoleFormat custom format CHANGE TO SILLY FOR DEBUGGING
         new transports.File({ level: "silly", format: logFormat, filename: '../logs/standard.log' }), //log file output as formatted by the logFormat custom format
         new transports.File({ level: "verbose", format: verboseFormat, filename: '../logs/audit.log' }), //log audit activities
         new transports.File({ level: "http", format: morganFormat, filename: '../logs/express.log' })

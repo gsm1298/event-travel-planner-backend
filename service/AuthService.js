@@ -6,6 +6,7 @@ import { User } from '../business/User.js';
 import { logger } from '../service/LogService.mjs';
 import Joi from 'joi';
 import { Email } from '../business/Email.js';
+import { UserDB } from '../data_access/UserDB.js';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -29,7 +30,9 @@ export class AuthService {
 
         app.post('/auth/login', this.login);
         app.post('/auth/mfa', this.mfa);
-        
+
+        app.post('/auth/forgotPassword', this.forgotPassword);
+
         // Every future route will require the user to be logged in
         app.use(this.authenticator);
         app.post('/auth/logout', this.logout);
@@ -216,6 +219,65 @@ export class AuthService {
             log.error("Error at Authenticator:  ", err);
             res.status(500).json({ error: "Internal server error" });
         }   
+    }
+    /**
+     * function that lets the user reset their password.
+     * @param {express.Request} req - The request object
+     * @param {express.Response} res - The response object
+     * @function
+     * @type {express.RequestHandler}
+     */
+    async forgotPassword(req, res) {
+        console.log("forgot password request from", req.body.email);
+        const db = new UserDB();
+        try {
+            // Validate request body
+            const schema = Joi.object({
+                email: Joi.string().email().required()
+            });
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
+            var input = req.body;
+            // TODO - validate req schema
+            var user = new User();
+
+            // Check valid login
+            const validUser = await db.GetUserByEmail(input.email);
+
+            if (!validUser) {
+                // If the user is not valid, send a 401 error
+                log.verbose("invlid user attempted password reset", { email: input.email } );
+                return res.status(401).json({ error: "Nonexistent user, incorrect email" });
+            } else {
+                // Create temp password
+                var tempPass = await User.hashPass(validUser.email + Date.now() + Math.random() + validUser.org.id);
+
+                tempPass = tempPass.substring(0, 12);
+                validUser.pass = tempPass;
+                validUser.hashedPass = await User.hashPass(tempPass);
+
+                try {
+                    const success = db.updateUser(validUser); // Update the user in the database
+                    if (success) {
+                        const email = new Email('no-reply@jlabupch.uk', validUser.email, "Temporary Password", `A temporary password has been created for you.\n\nIf this email was not at your request, ignore it and consider changing your password.\n\n\nYour temporary password is: ${validUser.pass}`);
+                        await email.sendEmail();
+
+                        return res.status(200).json({ response: "Temporary password Sent to email." });
+                    } else {
+                        log.error("user could not be updated (forgot password)", { email: input.email });
+                    }
+                } catch (err) {
+                    log.error("Error at DB user update in Forgot Password:  ", err);
+                    res.status(500).json({ error: "Internal server error" });
+                } 
+            }
+        } catch (err) {
+            log.error("Error at Forgot Password:  ", err);
+            res.status(500).json({ error: "Internal server error" });
+        } finally { db.close(); }
     }
 
     /**
