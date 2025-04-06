@@ -337,7 +337,7 @@ export class FlightService {
     // For Finance Use
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
-        console.log(req.params.id);
+        log.verbose("getEventFlights",{flightID: req.params.id});
 
         try {
             const eventID = req.params.id;

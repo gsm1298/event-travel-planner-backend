@@ -203,9 +203,8 @@ export class Event {
         try {
             return await db.getEventHistory(eventId);
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to get event history");
+            log.error(error);
+            log.error(new Error("Error trying to get event history"));
        } finally {
             db.close();
         }

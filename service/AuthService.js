@@ -228,7 +228,6 @@ export class AuthService {
      * @type {express.RequestHandler}
      */
     async forgotPassword(req, res) {
-        console.log("forgot password request from", req.body.email);
         const db = new UserDB();
         try {
             // Validate request body

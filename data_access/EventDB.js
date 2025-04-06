@@ -169,9 +169,9 @@ export class EventDB extends DB {
 
                     this.con.query(query, eventHistoryParams, (err, result) => {
                         if (!err) {
-                            console.log(result);
-                            console.log(query);
-                            console.log(eventHistoryParams);
+                            console.log(result); //DEBUG
+                            console.log(query); //DEBUG
+                            console.log(eventHistoryParams); //DEBUG
                             if (result.insertId > 0) {
                                 log.verbose("event history updated", { eventId: event.id, userId: userId });
                                 resolve(true);
@@ -293,14 +293,12 @@ export class EventDB extends DB {
                         else { resolve(null); }
                     } 
                     else {
-                        // TODO - error logging
-                        console.error(err);
+                        log.error(err);
                         reject(err);
                     }
                 });
             } catch (error) {
-                // TODO - error logging
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         });

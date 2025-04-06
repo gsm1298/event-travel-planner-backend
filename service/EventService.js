@@ -231,7 +231,7 @@ export class EventService {
 
             res.status(200).json({ message: "New attendee invited successfully" });
         } catch (err) {
-            console.error("Error inviting new attendee:", err);
+            log.error("Error inviting new attendee:", err);
             res.status(500).json({ error: "Unable to invite new attendee." });
         }
     }
