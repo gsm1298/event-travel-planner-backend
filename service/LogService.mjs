@@ -7,7 +7,7 @@ const { combine, timestamp, json, colorize, errors } = winston.format;
 //general logging formatting and file handling
 
 const consolePrintf = winston.format.printf((info) => {
-    return `[${info.timestamp}] [${info.level.toUpperCase()}]: ${info.message} ${info.stack}`;
+    return `[${info.timestamp}] [${info.level.toUpperCase()}]: ${info.message}, Stack Trace: ${info.stack}`;
 });
 
 const consoleFormat = combine(
