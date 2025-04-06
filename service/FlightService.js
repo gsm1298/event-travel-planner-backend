@@ -69,6 +69,7 @@ export class FlightService {
             lat: Joi.number().unsafe().required(),
             long: Joi.number().unsafe().required(),
             departure_date: Joi.string().isoDate().required(),
+            return_date: Joi.string().isoDate().optional(),
             destination: Joi.string().required(),
             type: Joi.number().required()
         });
