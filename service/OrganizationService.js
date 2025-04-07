@@ -33,7 +33,7 @@ export class OrganizationService {
     async createOrganization(req, res) {
         try {
             // Check if user is admin
-            if (!AuthService.authorizer(req, res, ["Admin"])) {
+            if (!AuthService.authorizer(req, res, ["Site Admin"])) {
                 log.verbose("unauthorized user attempted to create an organization", { userId: user.id })
                 return res.status(403).json({ error: "Unauthorized access" });
             }
@@ -74,7 +74,7 @@ export class OrganizationService {
         try {
 
             // Check if user is admin
-            if (!AuthService.authorizer(req, res, ["Admin"])) {
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"])) {
                 log.verbose("unauthorized user attempted to import users", { userId: res.locals.user.id })
                 return res.status(403).json({ error: "Unauthorized access" });
             }
@@ -162,6 +162,12 @@ export class OrganizationService {
     /** @type {express.RequestHandler} */
     async getAllOrganizations(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Site Admin"])) {
+                log.verbose("unauthorized user attempted to get all organizations", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+            
             const orgs = await Organization.getOrgs();
             if (orgs) { res.status(200).json(orgs); }
             else { res.status(404).json({ message: "No Organizations found" }); }
@@ -175,7 +181,7 @@ export class OrganizationService {
     async updateOrganization(req, res) {
         try {
             // Check if user is admin
-            if (!AuthService.authorizer(req, res, ["Admin"])) {
+            if (!AuthService.authorizer(req, res, ["Site Admin"])) {
                 log.verbose("unauthorized user attempted to update an organization", { userId: res.locals.user.id, orgId: req.params.id })
                 return res.status(403).json({ error: "Unauthorized access" });
             }
