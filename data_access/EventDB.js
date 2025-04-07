@@ -287,7 +287,7 @@ export class EventDB extends DB {
                                     updatedAutoApprove: Boolean(row.updated_autoapprove?.readUIntLE(0, 1)),
                                     originalAutoApproveThreshold: row.original_autoapprove_threshold,
                                     updatedAutoApproveThreshold: row.updated_autoapprove_threshold,
-                                    approvedFlight: new Flight(row.approvedFlight, null, row.flight_price, null, null, null, null, null, null, null, null, row.flight_number, row.flight_order_id),
+                                    approvedFlight: new Flight(row.approvedFlight, null, row.flight_price, null, null, null, null, null, null, null, null, null, row.flight_number, row.flight_order_id, null),
                                     created: row.created,
                                     lastEdited: row.last_edited
                                 }))
