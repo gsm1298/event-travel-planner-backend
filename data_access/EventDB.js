@@ -10,12 +10,12 @@ import { ro } from 'date-fns/locale';
 
 // Init child logger instance
 const log = logger.child({
-    dataAccess : "eventDb", //specify module where logs are from
+    dataAccess: "eventDb", //specify module where logs are from
 });
 
 
 const baseEventQuery =
-`
+    `
     SELECT
         event.event_id, event.name, event.destination_code,
         creator.first_name AS 'created_by_first_name', creator.last_name AS 'created_by_last_name', creator.email AS 'created_by_email',
@@ -67,7 +67,7 @@ export class EventDB extends DB {
                             resolve(result.insertId);
                         }
                         else { resolve(null); }
-                    } 
+                    }
                     else {
                         log.error("database query error from createEvent", err);
                         reject(err);
@@ -100,7 +100,7 @@ export class EventDB extends DB {
                 this.con.query(query, [values], (err, result) => {
                     if (!err) {
                         resolve(result.affectedRows > 0);
-                    } 
+                    }
                     else {
                         log.error(err);
                         reject(err);
@@ -132,13 +132,13 @@ export class EventDB extends DB {
 
                     // Boolean to make sure we only add the budget history if something was updated
                     var updates = false
-                    
+
                     // Check what was updated and add to the query
                     if (oldEvent?.maxBudget != event.maxBudget) {
                         eventHistoryInsertQuery += `original_budget, updated_budget,`;
                         eventHistoryValues += `?,?,`;
                         eventHistoryParams.push(oldEvent?.maxBudget, event.maxBudget);
-                        updates = true; 
+                        updates = true;
                     }
                     if (oldEvent?.autoApprove != event.autoApprove) {
                         eventHistoryInsertQuery += `original_autoapprove, updated_autoapprove,`;
@@ -152,7 +152,7 @@ export class EventDB extends DB {
                         eventHistoryParams.push(oldEvent?.autoApproveThreshold, event.autoApproveThreshold);
                         updates = true;
                     }
-                    if(flightId) {
+                    if (flightId) {
                         eventHistoryInsertQuery += `approved_flight,`;
                         eventHistoryValues += `?,`;
                         eventHistoryParams.push(flightId);
@@ -179,7 +179,7 @@ export class EventDB extends DB {
                                 resolve(true);
                             }
                             else { resolve(false); }
-                        } 
+                        }
                         else {
                             log.error(err);
                             reject(err);
@@ -205,7 +205,7 @@ export class EventDB extends DB {
         return new Promise((resolve, reject) => {
             try {
                 const query = baseEventQuery + 'WHERE event.event_id = ?';
-                
+
                 this.con.query(query, [eventId], (err, rows) => {
                     if (!err) {
                         if (rows.length > 0) {
@@ -214,16 +214,16 @@ export class EventDB extends DB {
                                 row.event_id,
                                 row.name,
                                 row.destination_code,
-                                new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name,
+                                new User(row.created_by_id, row.created_by_first_name, row.created_by_last_name,
                                     row.created_by_email, row.created_by_phone_num, null, null, row.created_by_profile_pic
                                 ),
                                 new User(
-                                    row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name,
-                                    row.finance_man_email,row.finance_man_phone_num,null,null,row.finance_man_profile_pic
+                                    row.finance_man_id, row.finance_man_first_name, row.finance_man_last_name,
+                                    row.finance_man_email, row.finance_man_phone_num, null, null, row.finance_man_profile_pic
                                 ),
                                 row.start_date,
                                 row.end_date,
-                                new Organization(row.org_id,row.org_name),
+                                new Organization(row.org_id, row.org_name),
                                 row.invite_link,
                                 row.description,
                                 row.picture_link,
@@ -232,9 +232,9 @@ export class EventDB extends DB {
                                 Boolean(row.autoapprove.readUIntLE(0, 1)),
                                 row.autoapprove_threshold
                             ));
-                        } 
+                        }
                         else { resolve(null); }
-                    } 
+                    }
                     else {
                         log.error("database query error from readEvent", err);
                         reject(err);
@@ -292,9 +292,9 @@ export class EventDB extends DB {
                                     lastEdited: row.last_edited
                                 }))
                             );
-                        } 
+                        }
                         else { resolve(null); }
-                    } 
+                    }
                     else {
                         log.error(err);
                         reject(err);
@@ -314,26 +314,46 @@ export class EventDB extends DB {
      */
     updateEvent(event) {
         return new Promise((resolve, reject) => {
-            try{
+            try {
                 const query = `
-                    UPDATE event
-                    SET name = ?, destination_code = ?, created_by = ?, finance_man = ?, start_date = ?, end_date = ?, org_id = ?, invite_link = ?, description = ?, picture_link = ?, max_budget = ?, current_budget = ?, autoapprove = ?, autoapprove_threshold = ?
-                    WHERE event_id = ?
+                    UPDATE event e
+                    JOIN (
+                        SELECT a.event_id, COALESCE(SUM(f.price), 0) AS total_flight_cost
+                        FROM attendee a
+                        LEFT JOIN flight f ON a.attendee_id = f.attendee_id AND f.status = 3
+                        GROUP BY a.event_id
+                    ) AS costs ON costs.event_id = e.event_id
+                    SET 
+                        e.name = ?,
+                        e.destination_code = ?,
+                        e.created_by = ?,
+                        e.finance_man = ?,
+                        e.start_date = ?,
+                        e.end_date = ?,
+                        e.org_id = ?,
+                        e.invite_link = ?,
+                        e.description = ?,
+                        e.picture_link = ?,
+                        e.max_budget = ?,
+                        e.current_budget = ? - costs.total_flight_cost,
+                        e.autoapprove = ?,
+                        e.autoapprove_threshold = ?
+                    WHERE e.event_id = ?;
                 `;
-                const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.currentBudget, event.autoApprove, event.autoApproveThreshold, event.id];
+                const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.maxBudget, event.autoApprove, event.autoApproveThreshold, event.id];
 
                 this.con.query(query, params, (err, result) => {
                     if (!err) {
                         log.verbose("event updated", { event: event.name, eventCreatedBy: event.createdBy }); // audit log the update request
                         resolve(result.affectedRows > 0);
-                    } 
+                    }
                     else {
                         log.error("database query error from updateEvent", err);
                         reject(err);
                     }
                 });
-            } catch(error) {
-                log.error("database try/catch error from updateEvent",error);
+            } catch (error) {
+                log.error("database try/catch error from updateEvent", error);
                 reject(error);
             }
         });
@@ -353,13 +373,13 @@ export class EventDB extends DB {
                     if (!err) {
                         log.verbose("event deleted", { eventId: eventId }); // audit log the deletion request
                         resolve(result.affectedRows > 0);
-                    } 
+                    }
                     else {
                         log.error("database query error from deleteEvent", err);
                         reject(err);
                     }
                 });
-            } catch(error) {
+            } catch (error) {
                 log.error("database try/catch error from deleteEvent", error);
                 reject(error);
             }
@@ -377,16 +397,16 @@ export class EventDB extends DB {
 
                 this.con.query(query, (err, rows) => {
                     if (!err) {
-                         // Map the database rows to Event objects
-                         const events = rows.map(row => new Event(
+                        // Map the database rows to Event objects
+                        const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
                             row.destination_code,
-                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
-                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            new User(row.created_by_id, row.created_by_first_name, row.created_by_last_name),
+                            new User(row.finance_man_id, row.finance_man_first_name, row.finance_man_last_name),
                             row.start_date,
                             row.end_date,
-                            new Organization(row.org_id,row.org_name),
+                            new Organization(row.org_id, row.org_name),
                             row.invite_link,
                             row.description,
                             row.picture_link,
@@ -395,15 +415,15 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-                        
+
                         resolve(events);
-                    } 
+                    }
                     else {
                         log.error("database query error from getAllEvents", err);
                         reject(err);
                     }
                 });
-            } catch(error) {
+            } catch (error) {
                 log.error("database try/catch error from getAllEvents", error);
                 reject(error);
             }
@@ -418,7 +438,7 @@ export class EventDB extends DB {
     getEventsForAttendee(userId) {
         return new Promise((resolve, reject) => {
             try {
-                const query = baseEventQuery + 
+                const query = baseEventQuery +
                     `
                             LEFT JOIN attendee on event.event_id = attendee.event_id
 					    WHERE attendee.user_id = ?
@@ -426,16 +446,16 @@ export class EventDB extends DB {
 
                 this.con.query(query, [userId], (err, rows) => {
                     if (!err) {
-                         // Map the database rows to Event objects
-                         const events = rows.map(row => new Event(
+                        // Map the database rows to Event objects
+                        const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
                             row.destination_code,
-                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
-                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            new User(row.created_by_id, row.created_by_first_name, row.created_by_last_name),
+                            new User(row.finance_man_id, row.finance_man_first_name, row.finance_man_last_name),
                             row.start_date,
                             row.end_date,
-                            new Organization(row.org_id,row.org_name),
+                            new Organization(row.org_id, row.org_name),
                             row.invite_link,
                             row.description,
                             row.picture_link,
@@ -444,15 +464,15 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-                        
+
                         resolve(events);
-                    } 
+                    }
                     else {
                         log.error("database query error from getEventsForAttendee", err);
                         reject(err);
                     }
                 });
-            } catch(error) {
+            } catch (error) {
                 log.error("database try/catch error from getEventsForAttendee", error);
                 reject(error);
             }
@@ -471,16 +491,16 @@ export class EventDB extends DB {
 
                 this.con.query(query, [userId], (err, rows) => {
                     if (!err) {
-                         // Map the database rows to Event objects
-                         const events = rows.map(row => new Event(
+                        // Map the database rows to Event objects
+                        const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
                             row.destination_code,
-                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
-                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            new User(row.created_by_id, row.created_by_first_name, row.created_by_last_name),
+                            new User(row.finance_man_id, row.finance_man_first_name, row.finance_man_last_name),
                             row.start_date,
                             row.end_date,
-                            new Organization(row.org_id,row.org_name),
+                            new Organization(row.org_id, row.org_name),
                             row.invite_link,
                             row.description,
                             row.picture_link,
@@ -489,15 +509,15 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-                        
+
                         resolve(events);
-                    } 
+                    }
                     else {
                         log.error("database query error from getEventsCreatedByUser", err);
                         reject(err);
                     }
                 });
-            } catch(error) {
+            } catch (error) {
                 log.error("database try/catch error from getEventsCreatedByUser", error);
                 reject(error);
             }
@@ -516,16 +536,16 @@ export class EventDB extends DB {
 
                 this.con.query(query, [userId], (err, rows) => {
                     if (!err) {
-                         // Map the database rows to Event objects
-                         const events = rows.map(row => new Event(
+                        // Map the database rows to Event objects
+                        const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
                             row.destination_code,
-                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
-                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            new User(row.created_by_id, row.created_by_first_name, row.created_by_last_name),
+                            new User(row.finance_man_id, row.finance_man_first_name, row.finance_man_last_name),
                             row.start_date,
                             row.end_date,
-                            new Organization(row.org_id,row.org_name),
+                            new Organization(row.org_id, row.org_name),
                             row.invite_link,
                             row.description,
                             row.picture_link,
@@ -534,16 +554,16 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-                        
+
                         resolve(events);
-                    } 
+                    }
                     else {
                         log.error("database query error from getEventsForFinanceManager", err);
                         reject(err);
                     }
                 });
-            } catch(error) {
-                log.error("database try/catch error from getEventsForFinanceManager",error);
+            } catch (error) {
+                log.error("database try/catch error from getEventsForFinanceManager", error);
                 reject(error);
             }
         });
@@ -561,16 +581,16 @@ export class EventDB extends DB {
 
                 this.con.query(query, (err, rows) => {
                     if (!err) {
-                         // Map the database rows to Event objects
-                         const events = rows.map(row => new Event(
+                        // Map the database rows to Event objects
+                        const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
                             row.destination_code,
-                            new User(row.created_by_id,row.created_by_first_name,row.created_by_last_name),
-                            new User(row.finance_man_id,row.finance_man_first_name,row.finance_man_last_name),
+                            new User(row.created_by_id, row.created_by_first_name, row.created_by_last_name),
+                            new User(row.finance_man_id, row.finance_man_first_name, row.finance_man_last_name),
                             row.start_date,
                             row.end_date,
-                            new Organization(row.org_id,row.org_name),
+                            new Organization(row.org_id, row.org_name),
                             row.invite_link,
                             row.description,
                             row.picture_link,
@@ -579,15 +599,15 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-                        
+
                         resolve(events);
-                    } 
+                    }
                     else {
                         log.error("database query error from getAllEvents", err);
                         reject(err);
                     }
                 });
-            } catch(error) {
+            } catch (error) {
                 log.error("database try/catch error from getAllEvents", error);
                 reject(error);
             }
