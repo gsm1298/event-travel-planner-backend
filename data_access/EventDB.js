@@ -5,6 +5,8 @@ import { User } from '../business/User.js';
 import { Organization } from '../business/Organization.js';
 import { Event } from '../business/Event.js';
 import { logger } from '../service/LogService.mjs';
+import { Flight } from '../business/Flight.js';
+import { ro } from 'date-fns/locale';
 
 // Init child logger instance
 const log = logger.child({
@@ -246,14 +248,13 @@ export class EventDB extends DB {
     }
 
     /**
-     * Get the budget history of an event from the database
+     * Get the history of an event from the database
      * @param {Integer} eventId
-     * @returns {Promise<EventBudgetHistory[]>} Array of EventBudgetHistory objects
+     * @returns {Promise<EventHistory[]>} Array of EventHistory objects
      */
     getEventHistory(eventId) {
         return new Promise((resolve, reject) => {
             try {
-                // TODO - Join flight table to get flight info if needed
                 const query = `
                     SELECT 
                         eventhistory.history_id, eventhistory.event_id, 
@@ -263,10 +264,13 @@ export class EventDB extends DB {
                         eventhistory.original_autoapprove, eventhistory.updated_autoapprove,
                         eventhistory.original_autoapprove_threshold, eventhistory.updated_autoapprove_threshold,
                         eventhistory.approved_flight,
+                        flight.price AS 'flight_price', 
+                        flight.order_id AS 'flight_order_id', flight.flight_number AS 'flight_number',
                         eventhistory.created, eventhistory.last_edited 
                     FROM eventhistory
                         LEFT JOIN user AS updater ON eventhistory.updated_by = updater.user_id
-                    WHERE event_id = ?
+                        LEFT JOIN flight ON eventhistory.approved_flight = flight.flight_id
+                    WHERE eventhistory.event_id = ?
                 `;
 
                 this.con.query(query, [eventId], (err, rows) => {
@@ -283,8 +287,7 @@ export class EventDB extends DB {
                                     updatedAutoApprove: Boolean(row.updated_autoapprove?.readUIntLE(0, 1)),
                                     originalAutoApproveThreshold: row.original_autoapprove_threshold,
                                     updatedAutoApproveThreshold: row.updated_autoapprove_threshold,
-                                    approvedFlight: row.approved_flight,
-                                    // TODO - Add flight info if needed
+                                    approvedFlight: new Flight(row.approvedFlight, null, row.flight_price, null, null, null, null, null, null, null, null, row.flight_number, row.flight_order_id),
                                     created: row.created,
                                     lastEdited: row.last_edited
                                 }))
