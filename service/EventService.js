@@ -27,6 +27,7 @@ export class EventService {
         this.app.get('/events', this.getEvents);
         this.app.put('/events/:id', this.updateEvent);
         this.app.delete('/events/:id', this.deleteEvent);
+        this.app.get('/events/history/:id', this.getEventHistory);
     }
 
     // ALL CRUD OPERATIONS BELOW
@@ -406,6 +407,67 @@ export class EventService {
         } catch (err) {
             log.error("Error deleting event:", err);
             res.status(500).json({ error: "Unable to delete event." });
+        }
+    }
+
+    /**
+     * Get event history as CSV file
+     * @param {express.Request} req 
+     * @param {express.Response} res
+     * @returns {Promise<void>}
+     */
+    async getEventHistory(req, res) {
+        try {
+            const eventId = req.params.id;
+
+            // Check if user is authorized to view history
+            if (!AuthService.authorizer(req, res, ["Event Planner", "Finance Manager"])) {
+                log.verbose("unauthorized user attempted to get event history", { userId: res.locals.user.id });
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Get event by ID first
+            const event = await Event.findById(eventId);
+            if (!event) {
+                return res.status(404).json({ message: "Event not found" });
+            }
+
+            // Get event history
+            const eventHistory = await Event.getEventHistory(eventId);
+            
+            if (!eventHistory) {
+                return res.status(404).json({ message: "No history found for this event" });
+            }
+
+            // Create CSV header
+            let csv = "Updated By,Original Budget,Updated Budget,Original Auto Approve,Updated Auto Approve,Original Threshold,Updated Threshold,Flight Number,Flight Price,Flight Order ID,Created,Last Edited\n";
+
+            // Add each history record
+            eventHistory.forEach(record => {
+                csv += `${record.updater.firstName} ${record.updater.lastName},`;
+                csv += `${record.originalBudget},`;
+                csv += `${record.updatedBudget},`;
+                csv += `${record.originalAutoApprove},`;
+                csv += `${record.updatedAutoApprove},`;
+                csv += `${record.originalAutoApproveThreshold},`;
+                csv += `${record.updatedAutoApproveThreshold},`;
+                csv += `${record.approvedFlight?.flight_number || ''},`;
+                csv += `${record.approvedFlight?.price || ''},`;
+                csv += `${record.approvedFlight?.order_id || ''},`;
+                csv += `${record.created},`;
+                csv += `${record.lastEdited}\n`;
+            });
+
+            // Set headers for file download
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', `attachment; filename=event_${eventId}_history.csv`);
+
+            // Send CSV file
+            res.status(200).send(csv);
+
+        } catch (err) {
+            log.error("Error getting event history:", err);
+            res.status(500).json({ error: "Unable to get event history." });
         }
     }
 }
