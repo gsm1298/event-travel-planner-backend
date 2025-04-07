@@ -88,7 +88,7 @@ export class FlightService {
                 origin_airport = resp.data[0].iataCode;
             })
         } catch (err) {
-            log.error("Error at Flight Search:  ", err);
+            log.error("Error at Flight Search", err);
             return res.status(500).json({ error: "Internal server error" });
         }
 

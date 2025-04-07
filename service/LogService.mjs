@@ -48,10 +48,24 @@ const whiteListVerbose = winston.format((info) => {
     return info; //return only verbose
 });
 
+const whiteListError = winston.format((info) => {
+    if(info.level != 'error'){
+        return false; //if not error return false
+    }
+    return info; //return only error
+});
+
 const verboseFormat = combine(
     timestamp(),
     errors({ stack: true }),
     whiteListVerbose(),
+    json()
+);
+
+const errorFormat = combine(
+    timestamp(),
+    errors({ stack: true }),
+    whiteListError(),
     json()
 );
 
@@ -66,7 +80,8 @@ const customconfig = {
         new transports.Console({ level: "silly", format: consoleFormat }), //console output as formatted by the consoleFormat custom format CHANGE TO SILLY FOR DEBUGGING
         new transports.File({ level: "silly", format: logFormat, filename: '../logs/standard.log' }), //log file output as formatted by the logFormat custom format
         new transports.File({ level: "verbose", format: verboseFormat, filename: '../logs/audit.log' }), //log audit activities
-        new transports.File({ level: "http", format: morganFormat, filename: '../logs/express.log' })
+        new transports.File({ level: "http", format: morganFormat, filename: '../logs/express.log' }),
+        new transports.File({ level: "error", format: errorFormat, filename: '../logs/error.log' }) //log error activities
     ],
     exceptionHandlers: [ //handle uncaught exceptions
         new transports.File({ filename: '../logs/exceptions.log' }) //sent to file
