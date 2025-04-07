@@ -446,7 +446,7 @@ export class FlightService {
 
             // Update DB record
             if (input.selection == 0) {
-                flight.status = 2; // Need to double check
+                flight.status = 3; // Need to double check -doule checked
             } else {
                 flight.order_id = "TEMP"
                 flight.approved_by = res.locals.user.id
