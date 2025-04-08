@@ -30,7 +30,7 @@ export class AuthService {
 
         app.post('/auth/login', this.login);
         app.post('/auth/mfa', this.mfa);
-
+        app.post('/auth/register', this.registerUser);
         app.post('/auth/forgotPassword', this.forgotPassword);
 
         // Every future route will require the user to be logged in
@@ -264,6 +264,73 @@ export class AuthService {
             res.status(500).json({ error: "Internal server error" });
         }
     }
+
+      /**
+     * Register a new user (public endpoint)
+     * @param {express.Request} req
+     * @param {express.Response} res
+     * @returns {Promise<void>}
+     */
+      async registerUser(req, res) {
+        try {
+            // Define strict Joi schema for registration
+            const schema = Joi.object({
+                firstName: Joi.string().required().min(2).max(50),
+                lastName: Joi.string().required().min(2).max(50),
+                email: Joi.string().email().required().max(100),
+                phoneNum: Joi.string().required(),
+                gender: Joi.string().valid('m', 'f').required(),
+                title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
+                profilePic: Joi.string().base64().optional(), 
+                dob: Joi.date().required().max('now').min('1900-01-01'),
+                password: Joi.string().min(4).required()
+            });
+
+            // Validate request body
+            const { error } = schema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ error: error.details[0].message });
+            }
+
+            const { firstName, lastName, email, phoneNum, gender, title, profilePic, dob, password } = req.body;
+
+            // Check if email DOES NOT already exist. The email should already be in the system if invited to an event.
+            const existingUser = await User.GetUserByEmail(email);
+            if (!existingUser) {
+                return res.status(400).json({ error: "Email does not exist. User has not been invited to an event." });
+            }
+
+            // Create the user
+            const newUser = new User(
+                existingUser.id,
+                firstName,
+                lastName,
+                existingUser.email,
+                phoneNum,
+                gender,
+                title,
+                profilePic,
+                existingUser.org,  // org will be set later
+                'Attendee',  // default role for registered users
+                await User.hashPass(password),  // hashedPass
+                null,  // mfaSecret
+                existingUser.mfaEnabled,  // mfaEnabled
+                dob
+            );
+            
+
+            // Save user to the database
+            console.log(newUser);
+            await newUser.save();
+
+            res.status(201).json({ message: "User registered successfully" });
+            log.verbose("new user registered", { email: newUser.email });
+        } catch (err) {
+            log.error("Error registering user:", err);
+            res.status(500).json({ error: "Unable to register user." });
+        }
+    }
+
     /**
      * function that lets the user reset their password.
      * @param {express.Request} req - The request object
