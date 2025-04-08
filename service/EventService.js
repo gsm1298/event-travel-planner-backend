@@ -27,7 +27,7 @@ export class EventService {
         this.app.get('/events', this.getEvents);
         this.app.put('/events/:id', this.updateEvent);
         this.app.delete('/events/:id', this.deleteEvent);
-        this.app.get('/events/history/:id', this.getEventHistory);
+        this.app.get('/events/history/:id', this.exportEventHistory);
     }
 
     // ALL CRUD OPERATIONS BELOW
@@ -294,6 +294,12 @@ export class EventService {
      */
     async getAllEvents(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Site Admin"])) {
+                log.verbose("unauthorized user attempted to get all events", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const events = await Event.findAll();
             res.status(200).json(events);
         } catch (err) {
@@ -346,13 +352,20 @@ export class EventService {
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
             }
 
-            const updatedBudget = (eventData.maxBudget && eventData.maxBudget != event.maxBudget);
+            const updatedBudget = (
+                (eventData.maxBudget && eventData.maxBudget != event.maxBudget) || 
+                (eventData.autoApproveThreshold && eventData.autoApproveThreshold != event.autoApproveThreshold) ||
+                (eventData.autoApprove && eventData.autoApprove != event.autoApprove)
+            ) ? true : false;
 
             // Update event properties
             Object.assign(event, eventData);  // Update only the provided fields
 
-            // Update the event budget history
-            await event.updateEventHistory(user.id);
+            // Check if the event is being updated to a new budget
+            if (updatedBudget) {
+                // Update the event budget history
+                await event.updateEventHistory(user.id);
+            }
 
             const success = await event.save();  // Save updated event
 
@@ -416,12 +429,12 @@ export class EventService {
      * @param {express.Response} res
      * @returns {Promise<void>}
      */
-    async getEventHistory(req, res) {
+    async exportEventHistory(req, res) {
         try {
             const eventId = req.params.id;
 
-            // Check if user is authorized to view history
-            if (!AuthService.authorizer(req, res, ["Event Planner", "Finance Manager"])) {
+            // Check if user is authorized to download event history, only Finance Managers will be allowed here.
+            if (!AuthService.authorizer(req, res, ["Finance Manager"])) {
                 log.verbose("unauthorized user attempted to get event history", { userId: res.locals.user.id });
                 return res.status(403).json({ error: "Unauthorized access" });
             }

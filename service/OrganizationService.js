@@ -227,7 +227,16 @@ export class OrganizationService {
             const user = await User.GetUserById(res.locals.user.id);
             const users = await User.GetAllUsersFromOrg(user.org.id);
             if (users) {
-                res.status(200).json(users);
+
+                // Remove some of the fields and create new array of objects to return
+                const returnUsers = users.map(user => ( 
+                    { 
+                        id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, 
+                        profilePic: user.profilePic, role: user.role, org: { id: user.org.id, name: user.org.name }
+                    })
+                );
+
+                res.status(200).json(returnUsers);
             }
             else {
                 res.status(404).json({ message: "No users found in Organization" });

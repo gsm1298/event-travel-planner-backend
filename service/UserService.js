@@ -2,6 +2,7 @@ import { User } from "../business/User.js";
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
 import { AuthService } from './AuthService.js';
+import { profile } from "winston";
 
 // Init child logger instance
 const log = logger.child({
@@ -143,9 +144,24 @@ export class UserService {
     async getUserById(req, res) {
         try {
             const userId = req.params.id;
+
+            // Check if user is admin or the user themselves
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"]) && res.locals.user.id != userId) {
+                log.verbose("unauthorized user attempted to get a user", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+            
             const user = await User.GetUserById(userId);
             if (user) {
-                res.status(200).json(user);
+                // Remove some of the fields and create new object to return
+                const returnUser = 
+                    { 
+                        id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, 
+                        phoneNum: user.phoneNum, gender: user.gender, title: user.title, profilePic: user.profilePic,
+                        role: user.role, org: { id: user.org.id, name: user.org.name }, dob: user.dob
+                    };
+
+                res.status(200).json(returnUser);
             } else {
                 res.status(404).json({ message: "User not found" });
             }
@@ -158,6 +174,12 @@ export class UserService {
     /** @type {express.RequestHandler} */
     async getUsers(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"])) {
+                log.verbose("unauthorized user attempted to get all users", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const users = await User.GetAllUsers();
             if (users.length > 0) {
                 res.status(200).json(users);

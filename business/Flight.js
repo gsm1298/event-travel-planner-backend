@@ -26,7 +26,11 @@ export class Flight {
      * @param {String} confirmation_code,
      * @param {String} flight_number,
      * @param {String} order_id
+<<<<<<< HEAD
+     * @param {String} itinerary
+=======
      * @param {Integer} itinerary
+>>>>>>> 7d88c60481c80f53091db8622c69e1bcf23db73a
      */
     constructor(
         flight_id = null, attendee_id = null, price = null, depart_time = null,
