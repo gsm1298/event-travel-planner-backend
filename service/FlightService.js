@@ -200,7 +200,8 @@ export class FlightService {
         const schema = Joi.object({
             offerID: Joi.string().required(),
             passID: Joi.string().required(),
-            flight: Joi.object().required()
+            flight: Joi.object().required(),
+            eventID: Joi.number().required()
         });
 
         const { error } = schema.validate(req.body);
@@ -390,8 +391,6 @@ export class FlightService {
   </table>
 </body>
 </html>
-
-
 `
             );
             await email.sendEmail();
