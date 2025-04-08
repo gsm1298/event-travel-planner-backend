@@ -444,19 +444,25 @@ export class FlightService {
             //     }
             // })
 
+            const oldFilghtStatus = flight.status;
+
             // Update DB record
             if (input.selection == 0) {
-                flight.status = 3; // Need to double check -doule checked
+                flight.status = 2; // Need to double check -doule checked
             } else {
-                flight.order_id = "TEMP"
-                flight.approved_by = res.locals.user.id
-                flight.confirmation_code = "Confirmed"
+                flight.order_id = "TEMP";
+                flight.approved_by = res.locals.user.id;
+                flight.confirmation_code = "Confirmed";
+                flight.status = 3;
             }
             flight.save();
 
-            // Updated the event history if flight was approved
-            const event = await Event.findById(flight.event_id);
-            await event.updateEventHistory(res.locals.user.id, flight.flight_id);
+            // Only update the event history if the flight was approved
+            if (flight.status == 3 && oldFilghtStatus == 1) {
+                // Updated the event history if flight was approved
+                const event = await Event.findById(flight.event_id);
+                await event.updateEventHistory(res.locals.user.id, flight.flight_id);
+            }
 
 
             // Send email to user
