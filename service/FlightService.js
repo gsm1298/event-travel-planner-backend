@@ -245,18 +245,24 @@ export class FlightService {
             var data = {
                 id: confirmation.data.id,
                 offer_id: confirmation.data.offer_id,
-                total: confirmation.data.total_amount,
+                totalPrice: confirmation.data.total_amount,
                 expiration: confirmation.data.payment_status.payment_required_by,
-                guarantee: confirmation.data.payment_status.price_guarantee_expires_at
+                guarantee: confirmation.data.payment_status.price_guarantee_expires_at,
+                deptSlice: confirmation.data.slices[0]
             }
+
+            const overallDepartureTime = data.deptSlice.segments[0].departing_at;
+            const overallArrivalTime = data.deptSlice.segments[data.deptSlice.segments.length - 1].arriving_at;
+            const overallDepartureAirportCode = data.deptSlice.origin.iata_code;
+            const overallArrivalAirportCode = data.deptSlice.destination.iata_code;
             
             var attendee_id = await User.GetAttendee(input.eventID, res.locals.user.id);
             console.log(res.locals.user.id);
             console.log(attendee_id);
 
             // Insert new hold into DB
-            var newHold = new Flight(null, attendee_id, input.flight.price, deptdate, 
-            input.flight.depart_loc, arrdate, input.flight.arrive_loc, 1, 
+            var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
+            overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, 1, 
             null, null, null, null, null, data.id);
             newHold.save();
 
