@@ -507,7 +507,7 @@ export class FlightService {
     async getBookedFlight(req, res) {
         try {
             const eventID = req.params.id;
-            const flights = await Flight.getBookedFlight(eventID, res.locals.user.id);
+            const flight = await Flight.getBookedFlight(eventID, res.locals.user.id);
             if(flight) {
                 res.status(200).json(flight);
             } else {

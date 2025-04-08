@@ -124,7 +124,7 @@ export class Flight {
     static async getBookedFlight(eventID, userID) {
         const db = new FlightDB();
         try {
-            return await db.getFlight(flightID)
+            return await db.getBookedFlight(flightID);
         } catch (error) {
             throw new Error("Error grabbing flight");
         } finally {

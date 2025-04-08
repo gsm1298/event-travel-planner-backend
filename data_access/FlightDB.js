@@ -145,9 +145,9 @@ export class FlightDB extends DB {
     getBookedFlight(eventID, userID) {
         return new Promise((resolve, reject) => {
             try {
-                const query = baseQuery + `WHERE flight_id = ?;`;
+                const query = baseQuery + `WHERE attendee.event_id = ? AND attendee.user_id = ?`;
 
-                this.con.query(query, [flightID], (error, result) => {
+                this.con.query(query, [eventID, userID], (error, result) => {
                     if(!error) {
                         if(result.length > 0) {
                             var row = result[0];
