@@ -462,9 +462,12 @@ export class FlightService {
             flight.save();
 
 
-            // Updated the event history if flight was approved
-            const event = await Event.findById(input.eventID);
-            await event.updateEventHistory(res.locals.user.id, flight.flight_id);
+            // Check if fligth was set to approved from pending
+            if (flight.status == 2 && oldFilghtStatus == 1) {
+                 // Updated the event history if flight was approved
+                const event = await Event.findById(input.eventID);
+                await event.updateEventHistory(res.locals.user.id, flight.flight_id);
+            }
             
             // Get Flight Attendee Info
             var client = User.GetUserByAttendee(flight.attendee_id);
