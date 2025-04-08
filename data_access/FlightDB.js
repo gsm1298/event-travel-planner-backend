@@ -131,7 +131,7 @@ export class FlightDB extends DB {
                     }
                 })
             } catch (error) {
-                console.error(error);
+                log.error(error);
                 reject(error);
             }
         })

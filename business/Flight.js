@@ -105,6 +105,7 @@ export class Flight {
      *  
      */
     static async getFlightByID(flightID) {
+        log.verbose("flight called by ID", {flightId: flightID});
         const db = new FlightDB();
         try {
             return await db.getFlight(flightID)

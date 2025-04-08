@@ -14,7 +14,7 @@ import { AuthService } from './AuthService.js';
 
 // Init child logger instance
 const log = logger.child({
-    service : "flightService", //specify module where logs are from
+    service: "flightService", //specify module where logs are from
 
 });
 
@@ -90,7 +90,7 @@ export class FlightService {
                 origin_airport = resp.data[0].iataCode;
             })
         } catch (err) {
-            log.error("Error at Flight Search:  ", err);
+            log.error("Error at Flight Search", err);
             return res.status(500).json({ error: "Internal server error" });
         }
 
@@ -101,7 +101,7 @@ export class FlightService {
         try {
             // Generate offer search and call Duffel api
             // Generate one-way or round trip based on input type value
-            if(input.type == 0) {
+            if (input.type == 0) {
                 await duffel.offerRequests.create({
                     slices: [
                         {
@@ -149,15 +149,15 @@ export class FlightService {
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
-                if(o.payment_requirements.payment_required_by == null) {
+                if (o.payment_requirements.payment_required_by == null) {
                     return;
                 }
 
                 // Init empty array to hold parsed slice data
                 var slices = []
-    
+
                 // Stop count for Nonstop/Connecting
-                var stops = o.slices[0].segments.length; 
+                var stops = o.slices[0].segments.length;
 
                 // Call Utils to parse
                 o.slices.forEach((s) => slices.push(Util.parseSlice(s)));
@@ -194,7 +194,7 @@ export class FlightService {
             log.verbose("unauthorized user attempted to hold a flight", { userId: res.locals.user.id });
             return res.status(403).json({ error: "Unauthorized access" });
         }
-        
+
         var input = req.body;
         var user;
 
@@ -215,13 +215,13 @@ export class FlightService {
             user = await User.GetUserById(res.locals.user.id);
         } catch (error) {
             log.error("uncaught user get request from flightservice");
-            res.status(500).json({error: "Internal Server Error"});
+            res.status(500).json({ error: "Internal Server Error" });
         }
 
         try {
             // Create Datetime object for DB insert
-            var deptdate = new Date((input.flight.date).slice(0,11) + input.flight.depart_time + ":00.000Z");
-            var arrdate = new Date((input.flight.date).slice(0,11) + input.flight.arrive_time + ":00.000Z");
+            var deptdate = new Date((input.flight.date).slice(0, 11) + input.flight.depart_time + ":00.000Z");
+            var arrdate = new Date((input.flight.date).slice(0, 11) + input.flight.arrive_time + ":00.000Z");
 
             // Create hold on given flight offer
             var confirmation = await duffel.orders.create({
@@ -261,7 +261,144 @@ export class FlightService {
             newHold.save();
 
             // Notify user via email
-            const email = new Email('no-reply@jlabupch.uk', user.email, "Flight on Hold", `Your flight to ${data.destination_airport} has been placed on hold.`);
+            const email = new Email(
+                'no-reply@jlabupch.uk',
+                user.email,
+                "Flight on Hold", null,
+                `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight on Hold</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f5; padding:20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0"
+               style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="background-color:#4c365d; padding:40px 20px;">
+              <h1 style="color:#ffffff; margin:0; font-size:28px;">Flight on Hold</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px 20px; background-color:#FFFFE2; text-align:left;">
+              <p style="font-size:18px; color:#333333; margin:0 0 20px;">Dear ${user.firstName},</p>
+              <p style="font-size:16px; color:#333333; margin:0 0 30px;">
+                Your flight has been placed on hold. Please review the details below:
+              </p>
+
+              <!-- Flight Details Card with Rounded Border -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                     style="border:2px solid #4c365d; border-radius:8px; background-color:#ffffff; padding:20px; overflow:hidden;">
+                <tr>
+                  <!-- Departure Column -->
+                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                      <tr>
+                        <td align="center">
+                          <h2 style="color:#4c365d; margin:0; font-size:20px;">Departure</h2>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center" style="padding-top:5px;">
+                          <p style="font-size:16px; color:#333333; margin:0;">
+                            <strong>${input.flight.depart_loc}</strong>
+                          </p>
+                          <p style="font-size:14px; color:#666666; margin:3px 0 0;">
+                            ${input.flight.depart_time}
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+
+                  <!-- Plane Icon Column -->
+                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                      <tr>
+                        <td align="center">
+                          <!-- Plane Icon -->
+                          <span style="font-size:30px; color:#4c365d; line-height:1;">&#9992;</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+
+                  <!-- Arrival Column -->
+                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                      <tr>
+                        <td align="center">
+                          <h2 style="color:#4c365d; margin:0; font-size:20px;">Arrival</h2>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center" style="padding-top:5px;">
+                          <p style="font-size:16px; color:#333333; margin:0;">
+                            <strong>${input.flight.arrive_loc}</strong>
+                          </p>
+                          <p style="font-size:14px; color:#666666; margin:3px 0 0;">
+                            ${input.flight.arrive_time}
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Date Row -->
+                <tr>
+                  <td colspan="3" style="padding-top:20px; text-align:center;">
+                    <p style="font-size:16px; color:#333333; margin:0;">
+                      <strong>Date:</strong> ${input.flight.date}
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Price Row -->
+                <tr>
+                  <td colspan="3" style="padding-top:10px; text-align:center;">
+                    <p style="font-size:16px; color:#333333; margin:0;">
+                      <strong>Price:</strong> $${input.flight.price}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <!-- End Flight Details Card -->
+
+              <p style="font-size:16px; color:#666666; margin:30px 0 0;">
+                Thank you for using our service!
+              </p>
+              <p style="font-size:16px; color:#666666; margin:10px 0 0;">
+                Best regards,
+              </p>
+              <p style="font-size:16px; color:#666666; margin:0;">
+                The Event Travel Planner Team
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="background-color:#f0f0f0; padding:20px;">
+              <p style="font-size:14px; color:#888888; margin:0;">
+                If you have any questions, feel free to contact your organization's event planning team.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`
+            );
             await email.sendEmail();
 
             res.status(200).send(JSON.stringify(data));
@@ -299,7 +436,7 @@ export class FlightService {
 
         try {
             var flight = await Flight.getFlightByID(input.flightID);
-            if(!flight) {
+            if (!flight) {
                 return res.status(404).json({ error: "Flight not found" });
             }
 
@@ -313,6 +450,8 @@ export class FlightService {
             //         'currency': 'USD'
             //     }
             // })
+
+            const oldFilghtStatus = flight.status;
 
             // Update DB record
             if(input.selection == 0) {
@@ -346,10 +485,12 @@ export class FlightService {
     // For Finance Use
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
+        log.verbose("getEventFlights", { flightID: req.params.id });
+
         try {
             const eventID = req.params.id;
             const flights = await Flight.getFlightsByEvent(eventID);
-            if(flights) {
+            if (flights) {
                 res.status(200).json(flights);
             } else {
                 res.status(400).json({ message: "Flights not found" });

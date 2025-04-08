@@ -5,7 +5,7 @@ import { AuthService } from './AuthService.js';
 
 // Init child logger instance
 const log = logger.child({
-    service : "userService", //specify module where logs are from
+    service: "userService", //specify module where logs are from
 });
 
 export class UserService {
@@ -33,23 +33,16 @@ export class UserService {
     async createUser(req, res) {
         try {
             // Check if user is admin
-            if (!AuthService.authorizer(req, res, ["Admin"])) {
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"])) {
                 log.verbose("unauthorized user attempted to create a user", { userId: res.locals.user.id })
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
             // Define Joi schemas
             const schema = Joi.object({
-                firstName: Joi.string().optional(),
-                lastName: Joi.string().optional(),
                 email: Joi.string().email().required(),
-                phoneNum: Joi.string().optional(),
-                gender: Joi.string().valid('m', 'f').optional(),
-                title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
-                dob: Joi.date().optional(),
-                org: Joi.object({ id: Joi.number().integer().required() }).optional(),
-                profilePic: Joi.string().optional(),
-                password: Joi.string().required(),
+                role: Joi.string().valid('Org Admin', 'Attendee', 'Event Planner', 'Finance Manager').required(),
+                org: Joi.number().required(),
             });
 
             // Validate request body
@@ -59,15 +52,21 @@ export class UserService {
             }
 
             // Use data from the request body and authenticated user
-            const { firstName, lastName, email, phoneNum, gender, title, profilePic, password, dob, org} = req.body;
+            const { email, role, org } = req.body;
 
             // Create the user
-            const newUser = new User(null, firstName, lastName, email, phoneNum, gender, title, profilePic, org = null, null, password, null, null, dob);
+            const newUser = new User(null, null, null, email, null, null, null, null, org, role, null, null, null, null);
+            var tempPass = await User.hashPass(attendee.email + Date.now() + Math.random() + userOrg.id);
+            tempPass = tempPass.substring(0, 12);
+            newUser.pass = tempPass;
+            newUser.hashedPass = await User.hashPass(tempPass);
 
-            if (!org) { newUser.org = res.locals.user.org; } // Default to the org of the user creating the user
 
             // Save user to the database
             await newUser.save();
+
+            const sendEmail = new Email('no-reply@jlabupch.uk', newUser.email, "Account Created", `There has been an accound created for you.\n\n Your temporary password is: ${newUser.pass}`);
+            await sendEmail.sendEmail();
 
             // Respond with the created event ID
             res.status(201).json({ message: "User created successfully" });
@@ -83,13 +82,13 @@ export class UserService {
         try {
 
             // Check if user is admin or the user themselves
-            if (!AuthService.authorizer(req, res, ["Admin"]) && res.locals.user.id != req.params.id) {
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"]) && res.locals.user.id != req.params.id) {
                 log.verbose("unauthorized user attempted to update a user", { userId: res.locals.user.id })
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-             // Define Joi schemas
-             const schema = Joi.object({
+            // Define Joi schemas
+            const schema = Joi.object({
                 firstName: Joi.string().optional(),
                 lastName: Joi.string().optional(),
                 email: Joi.string().email().optional(),
@@ -97,7 +96,7 @@ export class UserService {
                 gender: Joi.string().valid('m', 'f').optional(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
                 dob: Joi.date().optional(),
-                profilePic: Joi.string().optional(),
+                profilePic: Joi.string().allow(null, '').optional(),
                 password: Joi.string().min(6).optional(),
             });
 
@@ -121,15 +120,15 @@ export class UserService {
             // Update User in DB
             const updatedUser = await user.save();
             if (updatedUser) {
-                log.verbose("user updated", { 
-                    userId: userId, 
-                    firstName: firstName, 
-                    lastName: lastName, 
-                    email: email, 
-                    phoneNum:phoneNum, 
-                    gender: gender, 
-                    title: title, 
-                    profilePic: profilePic 
+                log.verbose("user updated", {
+                    userId: userId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    email: email,
+                    phoneNum: phoneNum,
+                    gender: gender,
+                    title: title,
+                    profilePic: profilePic
                 });
                 res.status(200).json({ message: "User updated successfully" });
             }

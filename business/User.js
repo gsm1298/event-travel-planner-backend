@@ -247,6 +247,23 @@ export class User {
         } finally { db.close(); }
     }
 
+        /**
+     * Gets a user by their email
+     * @param {String} email
+     * @returns {User} User object
+     */
+        static async GetUserByEmail(email) {
+            const db = new UserDB();
+            try {
+                const user = await db.GetUserByEmail(email);
+    
+                return user;
+            } catch (error) {
+                log.error(error);
+                log.error(new Error("Error trying get user by email"));
+            } finally { db.close(); }
+        }
+
     /**
      * Gets all users
      * @returns {User[]} Array of User objects

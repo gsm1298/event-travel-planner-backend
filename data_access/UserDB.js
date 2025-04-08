@@ -46,7 +46,7 @@ export class UserDB extends DB {
                     if (user.role) {
                         query= `
                             INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, date_of_birth, profile_picture, org_id, role_id)
-                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT role.role_id FROM role.name = ? LIMIT 1))
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT role.role_id FROM role WHERE role.name = ? LIMIT 1))
                         `;
                         params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, user.role];
                     }
