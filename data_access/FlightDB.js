@@ -150,15 +150,13 @@ export class FlightDB extends DB {
                 this.con.query(query, [eventID, userID], (error, result) => {
                     if(!error) {
                         if(result.length > 0) {
-                            var row = result[0];
-                            resolve(
-                                new Flight(
-                                    row.flight_id, row.attendee_id, row.price, row.depart_time,
-                                    row.depart_loc, row.arrive_time, row.arrive_loc, row.status,
-                                    row.approved_by, row.seat_num, row.seat_letter, row.confirmation_code,
-                                    row.flight_number, row.order_id, row.event_id
-                                )
-                            );
+                            const flights = result.map((row) => new Flight(
+                                row.flight_id, row.attendee_id, row.price, row.depart_time,
+                                row.depart_loc, row.arrive_time, row.arrive_loc, row.status,
+                                row.approved_by, row.seat_num, row.seat_letter, row.confirmation_code,
+                                row.flight_number, row.order_id, row.event_id
+                            ));
+                            resolve(flights);
                         } else {
                             resolve(null);
                         }
