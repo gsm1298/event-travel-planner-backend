@@ -297,4 +297,71 @@ export class UserDB extends DB {
             }
         });
     }
+
+    /**
+     * Get Attendee
+     * @param {Integer} eventId
+     * @param {Integer} userId
+     * @returns {Integer} Attendee ID
+     */
+    GetAttendee(eventId, userId) {
+        return new Promise((resolve, reject) => {
+            try {
+                var query = `
+                    SELECT attendee_id FROM attendee WHERE event_id = ? AND user_id = ?;
+                `;
+
+                this.con.query(query, [eventId, userId], function(error, rows) {
+                    if(!error) {
+                        resolve(rows[0])
+                    } else {
+                        resolve(null);
+                    }
+                })
+            } catch (error) {
+                log.error("database try/catch error from GetAttendee", error);
+                reject(error);
+            }
+        })
+    }
+
+    /**
+     * Get User via Attendee
+     * @param {Integer} attendeeId
+     * @returns {User} user
+     */
+    GetUserByAttendee(attendeeId) {
+        return new Promise((resolve, reject) => {
+            try {
+                var query = baseUserQuery + `
+                    JOIN attendee ON attendee.user_id = user.user_id WHERE attendee.attendee_id = ?
+                `;
+
+                this.con.query(query, [attendeeId], function (error, rows, fields) {
+                    if (!error) {
+                        if (rows.length > 0) {
+                            var row = rows[0];
+                            resolve(
+                                new User(
+                                    row.user_id, row.first_name, row.last_name, row.email,
+                                    row.phone_num, row.gender, row.title, row.profile_picture,
+                                    new Organization(row.org_id, row.org_name),
+                                    row.role_name, row.hashed_password, JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
+                                )
+                            );
+                            log.verbose("user requested by attendee", { attendeeId: attendeeId, userId: row.user_id });
+                        }
+                        else { resolve(null); }
+                    }
+                    else {
+                        log.error("database query error from GetUserByAttendee", error);
+                        reject(error);
+                    }
+                });
+            } catch (error) {
+                log.error("database try/catch error from GetUserByAttendee", error);
+                reject(error);
+            }
+        })
+    }
 }

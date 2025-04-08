@@ -297,4 +297,44 @@ export class User {
         } finally { db.close(); }
     }
 
+    /**
+     * Get Attendee ID
+     * @param {Integer} eventId 
+     * @param {Integer} userId 
+     */
+    static async GetAttendee(eventId, userId) {
+        const db = new UserDB();
+
+        try {
+            const id = await db.GetAttendee(eventId, userId);
+
+            return id.attendee_id;
+        } catch (error) {
+            log.error(error);
+            log.error(new Error("Error trying get attendee ID"));
+        } finally { db.close(); }
+    }
+
+    /**
+     * Get flight user
+     * @param {Integer} attendeeId
+     * @returns {User} user
+     */
+    static async GetUserByAttendee(attendeeId) {
+        const db = new UserDB();
+
+        try {
+            const user = await db.GetUserByAttendee(attendeeId);
+
+            return {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phoneNum: user.phoneNum
+            }
+        }catch (error) {
+            log.error(error);
+            log.error(new Error("Error trying get User"));
+        } finally { db.close(); }
+    }
 }

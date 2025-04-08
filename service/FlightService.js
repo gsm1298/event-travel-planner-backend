@@ -45,6 +45,8 @@ export class FlightService {
         app.post('/flights/booking', this.booking);
 
         app.get('/flights/eventflights/:id', this.getEventFlights);
+
+        app.get('/flights/bookedflight/:id', this.getBookedFlight);
     }
 
 
@@ -200,7 +202,8 @@ export class FlightService {
         const schema = Joi.object({
             offerID: Joi.string().required(),
             passID: Joi.string().required(),
-            flight: Joi.object().required()
+            flight: Joi.object().required(),
+            eventID: Joi.number().required(),
         });
 
         const { error } = schema.validate(req.body);
@@ -246,9 +249,13 @@ export class FlightService {
                 expiration: confirmation.data.payment_status.payment_required_by,
                 guarantee: confirmation.data.payment_status.price_guarantee_expires_at
             }
+            
+            var attendee_id = await User.GetAttendee(input.eventID, res.locals.user.id);
+            console.log(res.locals.user.id);
+            console.log(attendee_id);
 
             // Insert new hold into DB
-            var newHold = new Flight(null, res.locals.user.id, input.flight.price, deptdate, 
+            var newHold = new Flight(null, attendee_id, input.flight.price, deptdate, 
             input.flight.depart_loc, arrdate, input.flight.arrive_loc, 1, 
             null, null, null, null, null, data.id);
             newHold.save();
@@ -276,15 +283,17 @@ export class FlightService {
             return res.status(403).json({ error: "Unauthorized access" });
         }
         
-        // const schema = Joi.object({
-        //     id: Joi.string().required(),
-        //     price: Joi.number().positive().required()
-        // });
+        const schema = Joi.object({
+            id: Joi.string().required(),
+            price: Joi.number().positive().required(),
+            eventID: Joi.number().required(),
+            selection: Joi.boolean().required()
+        });
 
-        // const { error } = schema.validate(req.body);
-        // if (error) {
-        //     return res.status(400).json({ error: error.details[0].message });
-        // }
+        const { error } = schema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ error: error.details[0].message });
+        }
 
         var input = req.body;
 
@@ -307,16 +316,16 @@ export class FlightService {
 
             // Update DB record
             if(input.selection == 0) {
-                flight.status = 2; // Need to double check
+                flight.status = 3;
             } else {
-                flight.order_id = "TEMP"
-                flight.approved_by = res.locals.user.id
-                flight.confirmation_code = "Confirmed"
+                flight.status = 2
             }
+            flight.approved_by = res.locals.user.id;
+            flight.confirmation_code = "Confirmed";
             flight.save();
 
             // Updated the event history if flight was approved
-            const event = await Event.findById(flight.event_id);
+            const event = await Event.findById(input.eventID);
             await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             
 
@@ -337,8 +346,6 @@ export class FlightService {
     // For Finance Use
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
-        console.log(req.params.id);
-
         try {
             const eventID = req.params.id;
             const flights = await Flight.getFlightsByEvent(eventID);
@@ -350,6 +357,24 @@ export class FlightService {
         } catch (error) {
             log.error("Error retrieving flights for event:", error);
             res.status(500).json({ error: "Unable to fetch flights" });
+        }
+    }
+
+    // Get booked flight for user given input Event and User
+    // For Attendee
+    /**@type {express.RequestHandler} */
+    async getBookedFlight(req, res) {
+        try {
+            const eventID = req.params.id;
+            const flights = await Flight.getBookedFlight(eventID, res.locals.user.id);
+            if(flight) {
+                res.status(200).json(flight);
+            } else {
+                res.status(404).json({message: "No Booking Found"});
+            }
+        } catch (error) {
+            log.error("Error retrieving booked flight for user:", error);
+            res.status(500).json({ error: "Unable to fetch flight" });
         }
     }
 }
