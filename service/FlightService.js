@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import ejs from 'ejs';
 import { Duffel } from '@duffel/api';
 import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
@@ -248,13 +249,18 @@ export class FlightService {
                 totalPrice: confirmation.data.total_amount,
                 expiration: confirmation.data.payment_status.payment_required_by,
                 guarantee: confirmation.data.payment_status.price_guarantee_expires_at,
-                deptSlice: confirmation.data.slices[0]
+                deptSlice: confirmation.data.slices[0],
+                airline: confirmation.data.owner.name,
+                airlineLogo: confirmation.data.owner.logo_lockup_url
             }
 
             const overallDepartureTime = data.deptSlice.segments[0].departing_at;
+            const overallDepartureTimeZone = data.deptSlice.segments[0].origin.time_zone;
             const overallArrivalTime = data.deptSlice.segments[data.deptSlice.segments.length - 1].arriving_at;
+            const overallArrivalTimeZone = data.deptSlice.segments[data.deptSlice.segments.length - 1].destination.time_zone;
             const overallDepartureAirportCode = data.deptSlice.origin.iata_code;
             const overallArrivalAirportCode = data.deptSlice.destination.iata_code;
+            const overallDuration = data.deptSlice.duration;
             
             var attendee_id = await User.GetAttendee(input.eventID, res.locals.user.id);
             console.log(res.locals.user.id);
@@ -266,144 +272,50 @@ export class FlightService {
             null, null, null, null, null, data.id);
             newHold.save();
 
-            // Notify user via email
+            const templatePath = path.join(process.cwd(), 'email_templates', 'flightHoldEmail.ejs');
+
+            // Prepare data to pass into template
+            const templateData = {
+              user: {
+                firstName: user.firstName
+              },
+              flight: {
+                depart_loc: overallDepartureAirportCode,
+                depart_time: new Date(overallDepartureTime).toLocaleDateString('en-US', {
+                  timeZone: overallDepartureTimeZone,
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true,
+                  timeZoneName: 'short'
+                }),
+                arrive_loc: overallArrivalAirportCode,
+                arrive_time: new Date(overallArrivalTime).toLocaleDateString('en-US', {
+                  timeZone: overallArrivalTimeZone,
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true,
+                  timeZoneName: 'short'
+                }),
+                price: data.totalPrice,
+                duration: overallDuration.replace('P', '').replace('D', 'd ').replace('T', '').replace('H', 'h ').replace('M', 'm'),
+                airlineLogo: data.airlineLogo
+              }
+            };
+
+            let htmlContent;
+            try {
+              htmlContent = await ejs.renderFile(templatePath, templateData);
+            } catch (renderErr) {
+              log.error("Error rendering email template:", renderErr);
+            }
+
+            // Use generated htmlContent to send email
             const email = new Email(
-                'no-reply@jlabupch.uk',
-                user.email,
-                "Flight on Hold", null,
-                `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flight on Hold</title>
-</head>
-<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f5; padding:20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" border="0"
-               style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <tr>
-            <td align="center" style="background-color:#4c365d; padding:40px 20px;">
-              <h1 style="color:#ffffff; margin:0; font-size:28px;">Flight on Hold</h1>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:30px 20px; background-color:#FFFFE2; text-align:left;">
-              <p style="font-size:18px; color:#333333; margin:0 0 20px;">Dear ${user.firstName},</p>
-              <p style="font-size:16px; color:#333333; margin:0 0 30px;">
-                Your flight has been placed on hold. Please review the details below:
-              </p>
-
-              <!-- Flight Details Card with Rounded Border -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="border:2px solid #4c365d; border-radius:8px; background-color:#ffffff; padding:20px; overflow:hidden;">
-                <tr>
-                  <!-- Departure Column -->
-                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      <tr>
-                        <td align="center">
-                          <h2 style="color:#4c365d; margin:0; font-size:20px;">Departure</h2>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td align="center" style="padding-top:5px;">
-                          <p style="font-size:16px; color:#333333; margin:0;">
-                            <strong>${input.flight.depart_loc}</strong>
-                          </p>
-                          <p style="font-size:14px; color:#666666; margin:3px 0 0;">
-                            ${input.flight.depart_time}
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-
-                  <!-- Plane Icon Column -->
-                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      <tr>
-                        <td align="center">
-                          <!-- Plane Icon -->
-                          <span style="font-size:30px; color:#4c365d; line-height:1;">&#9992;</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-
-                  <!-- Arrival Column -->
-                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      <tr>
-                        <td align="center">
-                          <h2 style="color:#4c365d; margin:0; font-size:20px;">Arrival</h2>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td align="center" style="padding-top:5px;">
-                          <p style="font-size:16px; color:#333333; margin:0;">
-                            <strong>${input.flight.arrive_loc}</strong>
-                          </p>
-                          <p style="font-size:14px; color:#666666; margin:3px 0 0;">
-                            ${input.flight.arrive_time}
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Date Row -->
-                <tr>
-                  <td colspan="3" style="padding-top:20px; text-align:center;">
-                    <p style="font-size:16px; color:#333333; margin:0;">
-                      <strong>Date:</strong> ${input.flight.date}
-                    </p>
-                  </td>
-                </tr>
-
-                <!-- Price Row -->
-                <tr>
-                  <td colspan="3" style="padding-top:10px; text-align:center;">
-                    <p style="font-size:16px; color:#333333; margin:0;">
-                      <strong>Price:</strong> $${input.flight.price}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              <!-- End Flight Details Card -->
-
-              <p style="font-size:16px; color:#666666; margin:30px 0 0;">
-                Thank you for using our service!
-              </p>
-              <p style="font-size:16px; color:#666666; margin:10px 0 0;">
-                Best regards,
-              </p>
-              <p style="font-size:16px; color:#666666; margin:0;">
-                The Event Travel Planner Team
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="background-color:#f0f0f0; padding:20px;">
-              <p style="font-size:14px; color:#888888; margin:0;">
-                If you have any questions, feel free to contact your organization's event planning team.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`
+              'no-reply@jlabupch.uk',
+              user.email,
+              "Flight on Hold",
+              null,
+              htmlContent
             );
             await email.sendEmail();
 
