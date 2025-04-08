@@ -26,13 +26,13 @@ export class Flight {
      * @param {String} confirmation_code,
      * @param {String} flight_number,
      * @param {String} order_id
-     * @param {Integer} event_id
+     * @param {String} itinerary
      */
     constructor(
         flight_id = null, attendee_id = null, price = null, depart_time = null,
         depart_loc = null, arrive_time = null, arrive_loc = null, status = null, approved_by = null,
         seat_num = null, seat_letter = null, confirmation_code = null, flight_number = null, 
-        order_id = null, event_id = null
+        order_id = null, itinerary = null
     ){
         this.flight_id = flight_id,
         this.attendee_id = attendee_id,
@@ -48,7 +48,7 @@ export class Flight {
         this.confirmation_code = confirmation_code,
         this.flight_number = flight_number,
         this.order_id = order_id,
-        this.event_id = event_id
+        this.itinerary = itinerary
     }
 
     /**

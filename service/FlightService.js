@@ -156,9 +156,6 @@ export class FlightService {
                 // Init empty array to hold parsed slice data
                 var slices = []
 
-                // Stop count for Nonstop/Connecting
-                var stops = o.slices[0].segments.length;
-
                 // Call Utils to parse
                 o.slices.forEach((s) => slices.push(Util.parseSlice(s)));
 
@@ -219,10 +216,6 @@ export class FlightService {
         }
 
         try {
-            // Create Datetime object for DB insert
-            var deptdate = new Date((input.flight.date).slice(0, 11) + input.flight.depart_time + ":00.000Z");
-            var arrdate = new Date((input.flight.date).slice(0, 11) + input.flight.arrive_time + ":00.000Z");
-
             // Create hold on given flight offer
             var confirmation = await duffel.orders.create({
                 selected_offers: [input.offerID],
@@ -257,13 +250,11 @@ export class FlightService {
             const overallArrivalAirportCode = data.deptSlice.destination.iata_code;
             
             var attendee_id = await User.GetAttendee(input.eventID, res.locals.user.id);
-            console.log(res.locals.user.id);
-            console.log(attendee_id);
 
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
             overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, 1, 
-            null, null, null, null, null, data.id);
+            null, null, null, null, null, data.id, input.flight.details);
             newHold.save();
 
             // Notify user via email
@@ -460,23 +451,27 @@ export class FlightService {
             const oldFilghtStatus = flight.status;
 
             // Update DB record
-            if(input.selection == 0) {
+            if(input.selection == 1) {
                 flight.status = 3;
+                flight.confirmation_code = "Confirmed";
             } else {
                 flight.status = 2
+                flight.confirmation_code = "Denied";
             }
             flight.approved_by = res.locals.user.id;
-            flight.confirmation_code = "Confirmed";
             flight.save();
+
 
             // Updated the event history if flight was approved
             const event = await Event.findById(input.eventID);
             await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             
+            // Get Flight Attendee Info
+            var client = User.GetUserByAttendee(flight.attendee_id);
 
             // Send email to user
-            // const email = new Email('no-reply@jlabupch.uk', user.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
-            // await email.sendEmail();
+            const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
+            await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
             log.verbose("flight booked", { flightID: flight.flight_id });
