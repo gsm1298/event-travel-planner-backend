@@ -2,7 +2,6 @@ import { User } from "../business/User.js";
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
 import { AuthService } from './AuthService.js';
-import { profile } from "winston";
 
 // Init child logger instance
 const log = logger.child({
