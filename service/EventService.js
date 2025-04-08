@@ -54,7 +54,7 @@ export class EventService {
                 endDate: Joi.date().required(),
                 financeMan: Joi.object({id: Joi.number().integer().required()}).required(),
                 description: Joi.string().optional(),
-                pictureLink: Joi.string().uri().optional(),
+                pictureLink: Joi.string().uri().allow(null, '').optional(),
                 maxBudget: Joi.number().positive().required(),
                 autoApprove: Joi.boolean().optional(),
                 autoApproveThreshold: Joi.number().positive().optional(),

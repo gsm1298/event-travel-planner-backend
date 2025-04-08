@@ -96,7 +96,7 @@ export class UserService {
                 gender: Joi.string().valid('m', 'f').optional(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
                 dob: Joi.date().optional(),
-                profilePic: Joi.string().optional(),
+                profilePic: Joi.string().allow(null, '').optional(),
                 password: Joi.string().min(6).optional(),
             });
 
