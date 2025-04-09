@@ -226,10 +226,10 @@ export class FlightService {
         // Check if user already has a flight on hold
         const existingFlight = await Flight.getBookedFlight(input.eventID, user.id);
 
-        if (existingFlight.status?.id == 1) {
+        if (existingFlight?.status.id == 1) {
             log.verbose("user already has a flight on hold", { email: user.email, eventID: input.eventID });
             return res.status(400).json({ error: "Flight already on hold" });
-        } else if (existingFlight.status?.id == 3) {
+        } else if (existingFlight?.status.id == 3) {
             log.verbose("user already has a flight booked", { email: user.email, eventID: input.eventID });
             return res.status(400).json({ error: "Flight already booked" });
         }
