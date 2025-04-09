@@ -52,7 +52,7 @@ export class EventService {
                 destinationCode: Joi.string().required(),
                 startDate: Joi.date().required(),
                 endDate: Joi.date().required(),
-                financeMan: Joi.object({id: Joi.number().integer().required()}).required(),
+                financeMan: Joi.object({ id: Joi.number().integer() }).optional(),
                 description: Joi.string().optional(),
                 pictureLink: Joi.string().uri().allow(null, '').optional(),
                 maxBudget: Joi.number().positive().required(),
