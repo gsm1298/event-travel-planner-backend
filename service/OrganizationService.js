@@ -21,10 +21,10 @@ export class OrganizationService {
 
         // Define all routes for organization operations
         this.app.post('/organization', this.createOrganization);
-        this.app.get('/organization/users', this.getUsersInOrg);
         this.app.get('/organization/:id', this.getOrganizationById);
         this.app.get('/organizations', this.getAllOrganizations);
         this.app.put('/organization/:id', this.updateOrganization);
+        this.app.get('/organization/:id/users', this.getUsersInOrg);
         this.app.post('/organization/:id/importUsers', this.importUsers);
         //this.app.delete('/organization/:id', this.deleteOrganization);
     }
@@ -224,10 +224,22 @@ export class OrganizationService {
     /** @type {express.RequestHandler} */
     async getUsersInOrg(req, res) {
         try {
+            // Check if user is admin or event planner
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin", "Event Planner"])) {
+                log.verbose("unauthorized user attempted to get users in organization", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const user = await User.GetUserById(res.locals.user.id);
+
+            // Check if the user is part of the organization or an admin
+            if (user.org.id != req.params.id && !user.role.includes("Site Admin")) {
+                log.verbose("unauthorized user attempted to get users in organization", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const users = await User.GetAllUsersFromOrg(user.org.id);
             if (users) {
-
                 // Remove some of the fields and create new array of objects to return
                 const returnUsers = users.map(user => ( 
                     { 
@@ -235,7 +247,6 @@ export class OrganizationService {
                         profilePic: user.profilePic, role: user.role, org: { id: user.org.id, name: user.org.name }
                     })
                 );
-
                 res.status(200).json(returnUsers);
             }
             else {
