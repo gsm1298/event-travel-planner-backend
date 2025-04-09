@@ -294,7 +294,7 @@ export class FlightService {
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
             overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, { id: 1 }, 
             null, null, null, null, null, data.id, JSON.stringify(dbItinerary));
-            newHold.save();
+            const newHoldID = await newHold.save();
 
             const templatePath = path.join(process.cwd(), 'email_templates', 'flightHoldEmail.ejs');
             // Prepare data to pass into template
@@ -345,8 +345,32 @@ export class FlightService {
             log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
             res.status(200).send(JSON.stringify(data));
 
+            // Now that flight is held, check auto approval and book if the price is in the threshold.
+            // Check if the event has auto approval
+            const event = await Event.findById(input.eventID);
+            const flight = await Flight.getFlightByID(newHoldID);
+
+
+            if (event.autoApprove) {
+                // Check if the flight price is within the auto approval threshold
+                const autoApprovalThreshold = event.autoApproveThreshold;
+                const flightPrice = data.totalPrice;
+                if (flightPrice <= autoApprovalThreshold) {
+                    // Auto approve the flight
+                    flight.status.id = 3; 
+                    flight.confirmation_code = "Confirmed";
+                    flight.approved_by = event.financeMan.id; 
+                    flight.save();
+
+                    // Log and send email to user
+                    log.verbose("user flight booking confirmed via auto approval", { email: user.email, confirmationID: confirmation.data.id });
+                    // Send email to user
+                    var emailAA = new Email('no-reply@jlabupch.uk', user.email, "Flight Approved", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Approved.`);
+                    await emailAA.sendEmail();
+                }
+            }
         } catch (error) {
-            log.error("Error at Booking: ", error);
+            log.error("Error at Flight Hold (Auto Approval): ", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
