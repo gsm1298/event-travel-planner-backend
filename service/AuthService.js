@@ -368,52 +368,35 @@ export class AuthService {
                 try {
                     const success = db.updateUser(validUser); // Update the user in the database
                     if (success) {
-                        const email = new Email('no-reply@jlabupch.uk', validUser.email, 
-                        'Your Temporary Password', null,
-                        `<!DOCTYPE html>
-                        <html>
-                        <head>
-                        <meta charset="utf-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Verification Code</title>
-                        </head>
-                        <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 20px 0;">
-                            <tr>
-                            <td align="center">
-                                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                <!-- Header -->
-                                <tr>
-                                    <td align="center" style="background-color: #4c365d; padding: 40px 20px;">
-                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Password Reset Requested</h1>
-                                    </td>
-                                </tr>
-                                <!-- Body -->
-                                <tr>
-                                    <td style="padding: 40px 20px; text-align: center; background-color: #FFFFE2">
-                                    <p style="font-size: 18px; color: #333333; margin: 0 0 10px;">Your Temporary Password is:</p>
-                                    <p style="font-size: 36px; color: #4c365d; margin: 0 0 20px; font-weight: bold;">${validUser.pass}</p>
-                                    <p style="font-size: 16px; color: #666666; margin: 0;">Enter this password at the login prompt in the app to verify your account.</p>
-                                    </td>
-                                </tr>
-                                <!-- Footer -->
-                                <tr>
-                                    <td style="background-color: #f0f0f0; padding: 20px; text-align: center;">
-                                    <p style="font-size: 14px; color: #888888; margin: 0;">If you didn't request this, please ignore this email.</p>
-                                    </td>
-                                </tr>
-                                </table>
-                            </td>
-                            </tr>
-                        </table>
-                        </body>
-                        </html>
-                        `
-                    );
-                        
-                        await email.sendEmail();
+                        // Email template
+                        const templatePath = path.join(process.cwd(), 'email_templates', 'forgotPassEmail.ejs');
 
-                        return res.status(200).json({ response: "Temporary password Sent to email." });
+                        // Prepare data to pass into template
+                        const templateData = {
+                            tempPass: validUser.pass
+                        };
+
+                        let htmlContent;
+                        try {
+                            htmlContent = await ejs.renderFile(templatePath, templateData);
+                        } catch (renderErr) {
+                            log.error("Error rendering email template:", renderErr);
+                        }
+
+                        // Send email using generated htmlContent
+                        const email = new Email('no-reply@jlabupch.uk', input.email,
+                            'Your Password has been Reset', null,
+                            htmlContent
+                        );
+
+                        try {
+                            // Send the email
+                            await email.sendEmail();
+                            return res.status(200).json({ response: "Temporary password Sent to email." });
+                        } catch (err) {
+                            log.error("Error sending email:", err);
+                            return res.status(500).json({ error: "Email sending failed" });
+                        };
                     } else {
                         log.error("user could not be updated (forgot password)", { email: input.email });
                     }
