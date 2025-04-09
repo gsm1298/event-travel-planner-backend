@@ -340,7 +340,7 @@ export class FlightService {
               null,
               htmlContent
             );
-            await email.sendEmail();
+            email.sendEmail();
 
             log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
             res.status(200).send(JSON.stringify(data));
@@ -419,7 +419,7 @@ export class FlightService {
 
             // Send email to user
             const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} has been booked.`);
-            await email.sendEmail();
+            email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
             log.verbose("flight booked", { flightID: flight.flight_id });
