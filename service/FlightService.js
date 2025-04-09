@@ -229,6 +229,9 @@ export class FlightService {
         if (existingFlight.status == 1) {
             log.verbose("user already has a flight on hold", { email: user.email, eventID: input.eventID });
             return res.status(400).json({ error: "Flight already on hold" });
+        } else if (existingFlight.status == 3) {
+            log.verbose("user already has a flight booked", { email: user.email, eventID: input.eventID });
+            return res.status(400).json({ error: "Flight already booked" });
         }
 
         try{
