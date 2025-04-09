@@ -47,6 +47,8 @@ export class FlightService {
         app.get('/flights/eventflights/:id', this.getEventFlights);
 
         app.get('/flights/bookedflight/:id', this.getBookedFlight);
+        
+        app.get('/flights/seats/:id', this.getSeatMap);
     }
 
 
@@ -146,6 +148,7 @@ export class FlightService {
                 throw new Error("Invalid Flight Type!");
             }
 
+            var search_key = offers.data.client_key;
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
@@ -171,7 +174,8 @@ export class FlightService {
                     logo: o.owner.logo_symbol_url,
                     flight_class: o.slices[0].fare_brand_name,
                     flight_type: slices[0].flight_type,
-                    details: slices
+                    details: slices,
+                    search_key: search_key
                 })
 
             });
@@ -254,7 +258,7 @@ export class FlightService {
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
             overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, 1, 
-            null, null, null, null, null, data.id, input.flight.details);
+            null, null, null, null, data.id, input.flight.details);
             newHold.save();
 
             // Notify user via email
@@ -462,8 +466,8 @@ export class FlightService {
             flight.save();
 
 
-            // Check if fligth was set to approved from pending
-            if (flight.status == 2 && oldFilghtStatus == 1) {
+            // Check if flight was set to approved from pending
+            if (flight.status == 3 && oldFilghtStatus == 1) {
                  // Updated the event history if flight was approved
                 const event = await Event.findById(input.eventID);
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);
@@ -521,5 +525,21 @@ export class FlightService {
             log.error("Error retrieving booked flight for user:", error);
             res.status(500).json({ error: "Unable to fetch flight" });
         }
+    }
+
+    // Retrieve Seat Map for ID
+    /**@type {express.RequestHandler} */
+    async getSeatMap(req, res) {
+      try {
+        const offer = req.params.id;
+        const seats = await duffel.seatMaps.get({
+          offer_id: offer
+        })
+
+        res.status(200).json(seats) 
+      } catch (error) {
+          log.error("Error retrieving seat map", error);
+          res.status(500).json({ error: "Unable to fetch seat map" });
+      }
     }
 }
