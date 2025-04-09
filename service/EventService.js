@@ -164,6 +164,12 @@ export class EventService {
                 return res.status(400).json({ message: "Event has already started or is already over" });
             }
 
+            // Check if a Finance Manager is assigned to the event
+            if (!event.financeMan) {
+                log.verbose("event does not have a finance manager assigned", { eventId: event.id });
+                return res.status(400).json({ message: "Event does not have a finance manager assigned" });
+            }
+
             // Ensure the user is authorized to invite attendees to this event
             if (event.createdBy.id !== res.locals.user.id) {
                 log.verbose("unauthorized user attempted to invite an attendees to an event", { userId: res.locals.user.id, eventId: event.id });
@@ -221,6 +227,12 @@ export class EventService {
             if (event.CheckIfEventHasStarted() && event.CheckIfEventIsOver()) {
                 log.verbose("event has already started or is already over", { eventId: event.id });
                 return res.status(400).json({ message: "Event has already started or is already over" });
+            }
+
+            // Check if a Finance Manager is assigned to the event
+            if (!event.financeMan) {
+                log.verbose("event does not have a finance manager assigned", { eventId: event.id });
+                return res.status(400).json({ message: "Event does not have a finance manager assigned" });
             }
 
             // Ensure the user is authorized to invite attendees to this event
