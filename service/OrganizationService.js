@@ -106,14 +106,8 @@ export class OrganizationService {
 
             // joi validation for csv data
             const csvSchema = Joi.object({
-                firstName: Joi.string().required(),
-                lastName: Joi.string().required(),
                 email: Joi.string().email().required(),
-                phoneNum: Joi.string().required(),
-                gender: Joi.string().valid('m', 'f').required(),
-                title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
-                dob: Joi.date().required(),
-                role: Joi.string().valid('Attendee', 'Event Planner', 'Finance Manager').required(),
+                role: Joi.string().valid('Attendee', 'Event Planner', 'Finance Manager', 'Org Admin').required(),
             });
 
             // Validate each record against the schema  
@@ -127,8 +121,9 @@ export class OrganizationService {
             // Create users from CSV data
             const users = records.map(record => new User
                 (
-                    null, record.firstName, record.lastName, record.email, record.phoneNum,
-                    record.gender, record.title, null, {id: req.params.id}, null, null, null, null, record.dob
+                    null, null, null, record.email, null,
+                    null, null, null, {id: req.params.id}, record.role, 
+                    null, null, null, null
                 )
             );
 
