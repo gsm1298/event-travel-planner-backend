@@ -346,7 +346,7 @@ export class FlightService {
         }
         
         const schema = Joi.object({
-            id: Joi.string().required(),
+            id: Joi.number().required(),
             price: Joi.number().positive().required(),
             eventID: Joi.number().required(),
             selection: Joi.boolean().required()
