@@ -242,6 +242,7 @@ export class FlightService {
                 totalPrice: confirmation.data.total_amount,
                 expiration: confirmation.data.payment_status.payment_required_by,
                 guarantee: confirmation.data.payment_status.price_guarantee_expires_at,
+                slices: confirmation.data.slices,
                 deptSlice: confirmation.data.slices[0],
                 airline: confirmation.data.owner.name,
                 airlineLogo: confirmation.data.owner.logo_lockup_url
@@ -257,14 +258,28 @@ export class FlightService {
             
             var attendee_id = await User.GetAttendee(input.eventID, res.locals.user.id);
 
+            // Init empty array to hold parsed slice data
+            const slices = []
+
+            // Call Utils to parse
+            data.slices.forEach((s) => slices.push(Util.parseSlice(s)));
+
+            const dbItinerary = {
+              price: data.totalPrice,
+              airline: data.airline,
+              logoURL: data.airlineLogo,
+              offer_id: data.offer_id,
+              itinerary: slices
+            }
+            console.log(JSON.stringify(dbItinerary))
+
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
             overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, 1, 
-            null, null, null, null, null, data.id, input.flight.details);
+            null, null, null, null, null, data.id, JSON.stringify(dbItinerary));
             newHold.save();
 
             const templatePath = path.join(process.cwd(), 'email_templates', 'flightHoldEmail.ejs');
-
             // Prepare data to pass into template
             const templateData = {
               user: {
