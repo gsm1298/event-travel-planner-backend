@@ -20,7 +20,7 @@ dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')
 server.use(cors({ origin: `${process.env.frontend_url}`, credentials: true }));
 
 // For using req.body.x
-server.use(bodyParser.json());
+server.use(bodyParser.json({ limit: '5mb' }));
 
 // For getting JWT
 server.use(cookieParser());

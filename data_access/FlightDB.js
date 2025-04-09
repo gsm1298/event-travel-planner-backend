@@ -17,7 +17,7 @@ const baseQuery =
         flight.flight_id, flight.attendee_id, flight.price, flight.depart_time,
         flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status,
         flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code,
-        flight.flight_number, flight.order_id,
+        flight.flight_number, flight.order_id, flight.itinerary,
         attendee.event_id,
         attendee.user_id
     FROM flight
@@ -40,11 +40,11 @@ export class FlightDB extends DB {
         return new Promise((resolve, reject) => {
             try {
                 const query = `
-                INSERT INTO flight (attendee_id, price, depart_time, depart_loc, arrive_time, arrive_loc, status, approved_by, seat_num, seat_letter, confirmation_code, flight_number, order_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                INSERT INTO flight (attendee_id, price, depart_time, depart_loc, arrive_time, arrive_loc, status, approved_by, seat_num, seat_letter, confirmation_code, flight_number, order_id, itinerary)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 `    
 
-                const params = [flight.attendee_id, flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code, flight.flight_number, flight.order_id];
+                const params = [flight.attendee_id, flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code, flight.flight_number, flight.order_id, flight.itinerary];
 
                 this.con.query(query, params, (error, result) => {
                     if (!error) {
@@ -145,18 +145,20 @@ export class FlightDB extends DB {
     getBookedFlight(eventID, userID) {
         return new Promise((resolve, reject) => {
             try {
-                const query = baseQuery + `WHERE attendee.event_id = ? AND attendee.user_id = ?`;
+                const query = baseQuery + `WHERE attendee.event_id = ? AND attendee.user_id = ? ORDER BY flight_id DESC LIMIT 1`;
 
                 this.con.query(query, [eventID, userID], (error, result) => {
                     if(!error) {
                         if(result.length > 0) {
-                            const flights = result.map((row) => new Flight(
-                                row.flight_id, row.attendee_id, row.price, row.depart_time,
-                                row.depart_loc, row.arrive_time, row.arrive_loc, row.status,
-                                row.approved_by, row.seat_num, row.seat_letter, row.confirmation_code,
-                                row.flight_number, row.order_id, row.event_id
-                            ));
-                            resolve(flights);
+                            var row = result[0];
+                            resolve(
+                                new Flight(
+                                    row.flight_id, row.attendee_id, row.price, null,
+                                    null, null, null, row.status,
+                                    row.approved_by, null, null, row.confirmation_code,
+                                    null, row.order_id, JSON.parse(row.itinerary)
+                                )
+                            );
                         } else {
                             resolve(null);
                         }

@@ -21,10 +21,10 @@ export class OrganizationService {
 
         // Define all routes for organization operations
         this.app.post('/organization', this.createOrganization);
-        this.app.get('/organization/users', this.getUsersInOrg);
         this.app.get('/organization/:id', this.getOrganizationById);
         this.app.get('/organizations', this.getAllOrganizations);
         this.app.put('/organization/:id', this.updateOrganization);
+        this.app.get('/organization/:id/users', this.getUsersInOrg);
         this.app.post('/organization/:id/importUsers', this.importUsers);
         //this.app.delete('/organization/:id', this.deleteOrganization);
     }
@@ -106,14 +106,8 @@ export class OrganizationService {
 
             // joi validation for csv data
             const csvSchema = Joi.object({
-                firstName: Joi.string().required(),
-                lastName: Joi.string().required(),
                 email: Joi.string().email().required(),
-                phoneNum: Joi.string().required(),
-                gender: Joi.string().valid('m', 'f').required(),
-                title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
-                dob: Joi.date().required(),
-                role: Joi.string().valid('Attendee', 'Event Planner', 'Finance Manager').required(),
+                role: Joi.string().valid('Attendee', 'Event Planner', 'Finance Manager', 'Org Admin').required(),
             });
 
             // Validate each record against the schema  
@@ -127,8 +121,9 @@ export class OrganizationService {
             // Create users from CSV data
             const users = records.map(record => new User
                 (
-                    null, record.firstName, record.lastName, record.email, record.phoneNum,
-                    record.gender, record.title, null, {id: req.params.id}, null, null, null, null, record.dob
+                    null, null, null, record.email, null,
+                    null, null, null, {id: req.params.id}, record.role, 
+                    null, null, null, null
                 )
             );
 
@@ -224,10 +219,30 @@ export class OrganizationService {
     /** @type {express.RequestHandler} */
     async getUsersInOrg(req, res) {
         try {
+            // Check if user is admin or event planner
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin", "Event Planner"])) {
+                log.verbose("unauthorized user attempted to get users in organization", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const user = await User.GetUserById(res.locals.user.id);
+
+            // Check if the user is part of the organization or an admin
+            if (user.org.id != req.params.id && !user.role.includes("Site Admin")) {
+                log.verbose("unauthorized user attempted to get users in organization", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const users = await User.GetAllUsersFromOrg(user.org.id);
             if (users) {
-                res.status(200).json(users);
+                // Remove some of the fields and create new array of objects to return
+                const returnUsers = users.map(user => ( 
+                    { 
+                        id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, 
+                        profilePic: user.profilePic, role: user.role, org: { id: user.org.id, name: user.org.name }
+                    })
+                );
+                res.status(200).json(returnUsers);
             }
             else {
                 res.status(404).json({ message: "No users found in Organization" });

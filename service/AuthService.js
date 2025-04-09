@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
+import ejs, { render } from 'ejs';
 import { User } from '../business/User.js';
 import { logger } from '../service/LogService.mjs';
 import Joi from 'joi';
@@ -89,54 +90,32 @@ export class AuthService {
                 // const email = new Email('no-reply@jlabupch.uk', user.email, 
                 //     'Your Two-Factor Authentication Code', 'Your verification code is: ' + otp);
 
+                // Email template
+                const templatePath = path.join(process.cwd(), 'email_templates', '2faEmail.ejs');
+
+                // Prepare data to pass into template
+                const templateData = {
+                    otp: otp
+                };
+
+                let htmlContent;
+                try {
+                    htmlContent = await ejs.renderFile(templatePath, templateData);
+                } catch (renderErr) {
+                    log.error("Error rendering email template:", renderErr);
+                }
+
+                // Send email using generated htmlContent
                 const email = new Email('no-reply@jlabupch.uk', user.email,
                     'Your Two-Factor Authentication Code', null,
-                    `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verification Code</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 20px 0;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <tr>
-            <td align="center" style="background-color: #4c365d; padding: 40px 20px;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Verification Required</h1>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding: 40px 20px; text-align: center; background-color: #FFFFE2">
-              <p style="font-size: 18px; color: #333333; margin: 0 0 10px;">Your verification code is:</p>
-              <p style="font-size: 36px; color: #4c365d; margin: 0 0 20px; font-weight: bold;">${otp}</p>
-              <p style="font-size: 16px; color: #666666; margin: 0;">Enter this code in the app to verify your account.</p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f0f0f0; padding: 20px; text-align: center;">
-              <p style="font-size: 14px; color: #888888; margin: 0;">If you didn't request this, please ignore this email.</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`
+                    htmlContent
                 );
 
                 // Send the email
-                await email.sendEmail();
+                email.sendEmail();
 
                 //Create a temporary token to send to the user
-                var token = jwt.sign({ response: "2FA Code Sent to email." }, jwtSecret, { expiresIn: '5m' });
+                var token = jwt.sign({ response: "2FA Code Sent to email.", email: user.email, userId: user.id }, jwtSecret, { expiresIn: '5m' });
                 return res.status(200).cookie("temp", token, { httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain }).json({ response: "2FA Code Sent to email." });
 
             }
@@ -172,7 +151,12 @@ export class AuthService {
                     // Unset invalid cookie
                     return res.status(401).cookie("temp", "", { httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).json({ error: "Not authenticated" });
                 }
+                res.locals.user = decoded;
+                
+
             });
+
+
         } catch (err) {
             log.error("Error at MFA Authenticator:  ", err);
             res.status(500).json({ error: "Internal server error" });
@@ -183,12 +167,24 @@ export class AuthService {
             const user = new User();
 
             // Check valid login
+
+
             const valid = await user.CheckMFA(input.email, input.mfaCode);
             if (!valid) {
                 log.verbose("Incorrect 2FA code", { email: input.email, mfaCode: input.mfaCode });
                 return res.status(401).json({ error: "Incorrect 2FA Code" });
             }
             else {
+                // Check for JWT tampering or email switching in login
+                if (res.locals.user.email !== input.email || res.locals.user.userId !== user.id) {
+                    log.warn("Potential JWT tampering or email mismatch detected", {
+                        expectedEmail: res.locals.user.email,
+                        providedEmail: input.email,
+                    });
+                    return res.status(401).json({ error: "Authentication failed due to email mismatch" });
+                }
+                
+
                 //LOGIN VALID, 2FA SUCCESS
                 if (!user.mfaEnabled) {
                     // If MFA is not enabled, set it to true
@@ -372,52 +368,35 @@ export class AuthService {
                 try {
                     const success = db.updateUser(validUser); // Update the user in the database
                     if (success) {
-                        const email = new Email('no-reply@jlabupch.uk', validUser.email, 
-                        'Your Temporary Password', null,
-                        `<!DOCTYPE html>
-                        <html>
-                        <head>
-                        <meta charset="utf-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Verification Code</title>
-                        </head>
-                        <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 20px 0;">
-                            <tr>
-                            <td align="center">
-                                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                                <!-- Header -->
-                                <tr>
-                                    <td align="center" style="background-color: #4c365d; padding: 40px 20px;">
-                                    <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Password Reset Requested</h1>
-                                    </td>
-                                </tr>
-                                <!-- Body -->
-                                <tr>
-                                    <td style="padding: 40px 20px; text-align: center; background-color: #FFFFE2">
-                                    <p style="font-size: 18px; color: #333333; margin: 0 0 10px;">Your Temporary Password is:</p>
-                                    <p style="font-size: 36px; color: #4c365d; margin: 0 0 20px; font-weight: bold;">${validUser.pass}</p>
-                                    <p style="font-size: 16px; color: #666666; margin: 0;">Enter this password at the login prompt in the app to verify your account.</p>
-                                    </td>
-                                </tr>
-                                <!-- Footer -->
-                                <tr>
-                                    <td style="background-color: #f0f0f0; padding: 20px; text-align: center;">
-                                    <p style="font-size: 14px; color: #888888; margin: 0;">If you didn't request this, please ignore this email.</p>
-                                    </td>
-                                </tr>
-                                </table>
-                            </td>
-                            </tr>
-                        </table>
-                        </body>
-                        </html>
-                        `
-                    );
-                        
-                        await email.sendEmail();
+                        // Email template
+                        const templatePath = path.join(process.cwd(), 'email_templates', 'forgotPassEmail.ejs');
 
-                        return res.status(200).json({ response: "Temporary password Sent to email." });
+                        // Prepare data to pass into template
+                        const templateData = {
+                            tempPass: validUser.pass
+                        };
+
+                        let htmlContent;
+                        try {
+                            htmlContent = await ejs.renderFile(templatePath, templateData);
+                        } catch (renderErr) {
+                            log.error("Error rendering email template:", renderErr);
+                        }
+
+                        // Send email using generated htmlContent
+                        const email = new Email('no-reply@jlabupch.uk', input.email,
+                            'Your Password has been Reset', null,
+                            htmlContent
+                        );
+
+                        try {
+                            // Send the email
+                            email.sendEmail();
+                            return res.status(200).json({ response: "Temporary password Sent to email." });
+                        } catch (err) {
+                            log.error("Error sending email:", err);
+                            return res.status(500).json({ error: "Email sending failed" });
+                        };
                     } else {
                         log.error("user could not be updated (forgot password)", { email: input.email });
                     }

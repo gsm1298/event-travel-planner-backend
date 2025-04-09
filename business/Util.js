@@ -6,9 +6,13 @@ export class Util {
             stops.push({
                 origin: s.origin.iata_code,
                 origin_name: s.origin.name,
+                origin_city: s.origin.city_name,
+                origin_TZ: s.origin.time_zone,
                 destination: s.destination.iata_code,
                 destination_name: s.destination.name,
-                duration: (s.duration).slice(2),
+                destination_city: s.destination.city_name,
+                destination_TZ: s.destination.time_zone,
+                duration: s.duration,
                 terminal: s.origin_terminal,
                 departure_date: (s.departing_at).slice(0, 10),
                 departure_time: (s.departing_at).slice(11,16),
@@ -23,7 +27,9 @@ export class Util {
             duration: slice.duration,
             origin: slice.origin.iata_code,
             destination: slice.destination.iata_code,
-            flight_type: stops.length == 1 ? "Non-Stop"  : "Connecting",
+            flight_type: stops.length == 1 ? "Non-Stop"  : stops.length == 2 ? "1 Stop" : `${stops.length + 1} Stops`,
+            departure_time: slice.segments[0].departing_at,
+            arrival_time: slice.segments[(slice.segments.length - 1)].arriving_at,
             itinerary: stops
         }
     }

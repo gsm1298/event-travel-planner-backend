@@ -77,6 +77,28 @@ export class Event {
     }
 
     /**
+     * Check if the event is over
+     * @returns {Boolean} True if the event is over, false otherwise
+     * @throws {Error}
+     */
+    CheckIfEventIsOver() {
+        const today = new Date();
+        const endDate = new Date(this.endDate);
+        return today > endDate;
+    }
+
+    /**
+     * Check if the event has started
+     * @returns {Boolean} True if the event has started, false otherwise
+     * @throws {Error}
+     */
+    CheckIfEventHasStarted() {
+        const today = new Date();
+        const startDate = new Date(this.startDate);
+        return today > startDate;
+    }
+
+    /**
      * Update the event history
      * @returns {Promise<void>}
      * @param {Integer} userId - The user ID of the user who is updating the event history
@@ -109,7 +131,7 @@ export class Event {
                 const user = await User.GetUserById(attendee.id);
                 const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
                 log.verbose("attendee invited to event", { email: attendee.email, eventId: this.id });
-                await email.sendEmail();
+                email.sendEmail();
             });
         } catch(error) {
             log.error(error);
@@ -129,7 +151,7 @@ export class Event {
             await db.addAttendeesToEvent(this.id, [attendee]);
             const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
             log.verbose("new attendee added", { email: attendee.email });
-            await email.sendEmail();
+            email.sendEmail();
         } catch(error) {
             log.error(error);
             log.error(Error("Error trying to add new attendee to event"));

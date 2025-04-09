@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import ejs from 'ejs';
 import { Duffel } from '@duffel/api';
 import { User } from '../business/User.js';
 import { Flight } from '../business/Flight.js';
@@ -198,6 +199,7 @@ export class FlightService {
 
         var input = req.body;
         var user;
+        var attendee_id;
 
         // JOI Validation
         const schema = Joi.object({
@@ -214,12 +216,36 @@ export class FlightService {
 
         try {
             user = await User.GetUserById(res.locals.user.id);
+            if (user) {
+                attendee_id = await User.GetAttendee(input.eventID, user.id);
+                if (!attendee_id) {
+                    return res.status(403).json({ error: "User not an attendee" });
+                } else{
+                    const event = await Event.findById(input.eventID);
+
+                    // Check if event hases ended
+                    if (event.CheckIfEventIsOver()) {
+                        return res.status(403).json({ error: "Event has already ended" });
+                    }
+                }
+            } else { return res.status(404).json({ error: "User not found" }); }
         } catch (error) {
             log.error("uncaught user get request from flightservice");
-            res.status(500).json({ error: "Internal Server Error" });
+            return res.status(500).json({ error: "Internal Server Error" });
         }
 
-        try {
+        // Check if user already has a flight on hold
+        const existingFlight = await Flight.getBookedFlight(input.eventID, user.id);
+
+        if (existingFlight.status == 1) {
+            log.verbose("user already has a flight on hold", { email: user.email, eventID: input.eventID });
+            return res.status(400).json({ error: "Flight already on hold" });
+        } else if (existingFlight.status == 3) {
+            log.verbose("user already has a flight booked", { email: user.email, eventID: input.eventID });
+            return res.status(400).json({ error: "Flight already booked" });
+        }
+
+        try{
             // Create hold on given flight offer
             var confirmation = await duffel.orders.create({
                 selected_offers: [input.offerID],
@@ -245,165 +271,90 @@ export class FlightService {
                 totalPrice: confirmation.data.total_amount,
                 expiration: confirmation.data.payment_status.payment_required_by,
                 guarantee: confirmation.data.payment_status.price_guarantee_expires_at,
-                deptSlice: confirmation.data.slices[0]
+                slices: confirmation.data.slices,
+                deptSlice: confirmation.data.slices[0],
+                airline: confirmation.data.owner.name,
+                airlineLogo: confirmation.data.owner.logo_symbol_url,
+                airlineLogoLockup: confirmation.data.owner.logo_lockup_url
             }
 
             const overallDepartureTime = data.deptSlice.segments[0].departing_at;
+            const overallDepartureTimeZone = data.deptSlice.segments[0].origin.time_zone;
             const overallArrivalTime = data.deptSlice.segments[data.deptSlice.segments.length - 1].arriving_at;
+            const overallArrivalTimeZone = data.deptSlice.segments[data.deptSlice.segments.length - 1].destination.time_zone;
             const overallDepartureAirportCode = data.deptSlice.origin.iata_code;
             const overallArrivalAirportCode = data.deptSlice.destination.iata_code;
-            
-            var attendee_id = await User.GetAttendee(input.eventID, res.locals.user.id);
+            const overallDuration = data.deptSlice.duration;
+
+            // Init empty array to hold parsed slice data
+            const slices = []
+
+            // Call Utils to parse
+            data.slices.forEach((s) => slices.push(Util.parseSlice(s)));
+
+            const dbItinerary = {
+              price: data.totalPrice,
+              airline: data.airline,
+              logoURL: data.airlineLogo,
+              offer_id: data.offer_id,
+              itinerary: slices
+            }
+            //console.log(JSON.stringify(dbItinerary))
 
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
             overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, 1, 
-            null, null, null, null, data.id, input.flight.details);
+            null, null, null, null, null, data.id, JSON.stringify(dbItinerary));
             newHold.save();
 
-            // Notify user via email
+            const templatePath = path.join(process.cwd(), 'email_templates', 'flightHoldEmail.ejs');
+            // Prepare data to pass into template
+            const templateData = {
+              user: {
+                firstName: user.firstName
+              },
+              flight: {
+                depart_loc: overallDepartureAirportCode,
+                depart_time: new Date(overallDepartureTime).toLocaleDateString('en-US', {
+                  timeZone: overallDepartureTimeZone,
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true,
+                  timeZoneName: 'short'
+                }),
+                arrive_loc: overallArrivalAirportCode,
+                arrive_time: new Date(overallArrivalTime).toLocaleDateString('en-US', {
+                  timeZone: overallArrivalTimeZone,
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true,
+                  timeZoneName: 'short'
+                }),
+                price: data.totalPrice,
+                duration: overallDuration.replace('P', '').replace('D', 'd ').replace('T', '').replace('H', 'h ').replace('M', 'm'),
+                airlineLogo: data.airlineLogoLockup
+              }
+            };
+
+            let htmlContent;
+            try {
+              htmlContent = await ejs.renderFile(templatePath, templateData);
+            } catch (renderErr) {
+              log.error("Error rendering email template:", renderErr);
+            }
+
+            // Use generated htmlContent to send email
             const email = new Email(
-                'no-reply@jlabupch.uk',
-                user.email,
-                "Flight on Hold", null,
-                `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flight on Hold</title>
-</head>
-<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f5; padding:20px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" border="0"
-               style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <tr>
-            <td align="center" style="background-color:#4c365d; padding:40px 20px;">
-              <h1 style="color:#ffffff; margin:0; font-size:28px;">Flight on Hold</h1>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:30px 20px; background-color:#FFFFE2; text-align:left;">
-              <p style="font-size:18px; color:#333333; margin:0 0 20px;">Dear ${user.firstName},</p>
-              <p style="font-size:16px; color:#333333; margin:0 0 30px;">
-                Your flight has been placed on hold. Please review the details below:
-              </p>
-
-              <!-- Flight Details Card with Rounded Border -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                     style="border:2px solid #4c365d; border-radius:8px; background-color:#ffffff; padding:20px; overflow:hidden;">
-                <tr>
-                  <!-- Departure Column -->
-                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      <tr>
-                        <td align="center">
-                          <h2 style="color:#4c365d; margin:0; font-size:20px;">Departure</h2>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td align="center" style="padding-top:5px;">
-                          <p style="font-size:16px; color:#333333; margin:0;">
-                            <strong>${input.flight.depart_loc}</strong>
-                          </p>
-                          <p style="font-size:14px; color:#666666; margin:3px 0 0;">
-                            ${input.flight.depart_time}
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-
-                  <!-- Plane Icon Column -->
-                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      <tr>
-                        <td align="center">
-                          <!-- Plane Icon -->
-                          <span style="font-size:30px; color:#4c365d; line-height:1;">&#9992;</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-
-                  <!-- Arrival Column -->
-                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
-                    <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                      <tr>
-                        <td align="center">
-                          <h2 style="color:#4c365d; margin:0; font-size:20px;">Arrival</h2>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td align="center" style="padding-top:5px;">
-                          <p style="font-size:16px; color:#333333; margin:0;">
-                            <strong>${input.flight.arrive_loc}</strong>
-                          </p>
-                          <p style="font-size:14px; color:#666666; margin:3px 0 0;">
-                            ${input.flight.arrive_time}
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Date Row -->
-                <tr>
-                  <td colspan="3" style="padding-top:20px; text-align:center;">
-                    <p style="font-size:16px; color:#333333; margin:0;">
-                      <strong>Date:</strong> ${input.flight.date}
-                    </p>
-                  </td>
-                </tr>
-
-                <!-- Price Row -->
-                <tr>
-                  <td colspan="3" style="padding-top:10px; text-align:center;">
-                    <p style="font-size:16px; color:#333333; margin:0;">
-                      <strong>Price:</strong> $${input.flight.price}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              <!-- End Flight Details Card -->
-
-              <p style="font-size:16px; color:#666666; margin:30px 0 0;">
-                Thank you for using our service!
-              </p>
-              <p style="font-size:16px; color:#666666; margin:10px 0 0;">
-                Best regards,
-              </p>
-              <p style="font-size:16px; color:#666666; margin:0;">
-                The Event Travel Planner Team
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="background-color:#f0f0f0; padding:20px;">
-              <p style="font-size:14px; color:#888888; margin:0;">
-                If you have any questions, feel free to contact your organization's event planning team.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`
+              'no-reply@jlabupch.uk',
+              user.email,
+              "Flight on Hold",
+              null,
+              htmlContent
             );
-            await email.sendEmail();
+            email.sendEmail();
 
-            res.status(200).send(JSON.stringify(data));
             log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
+            res.status(200).send(JSON.stringify(data));
 
         } catch (error) {
             log.error("Error at Booking: ", error);
@@ -422,7 +373,7 @@ export class FlightService {
         }
         
         const schema = Joi.object({
-            id: Joi.string().required(),
+            id: Joi.number().required(),
             price: Joi.number().positive().required(),
             eventID: Joi.number().required(),
             selection: Joi.boolean().required()
@@ -436,7 +387,14 @@ export class FlightService {
         var input = req.body;
 
         try {
-            var flight = await Flight.getFlightByID(input.flightID);
+            const event = await Event.findById(input.eventID);
+
+            // Check if event is over
+            if (event.CheckIfEventIsOver()) {
+                log.verbose("event is already over", { eventId: event.id });
+                return res.status(400).json({ message: "Event is already over" });
+            }
+            var flight = await Flight.getFlightByID(input.id);
             if (!flight) {
                 return res.status(404).json({ error: "Flight not found" });
             }
@@ -455,7 +413,7 @@ export class FlightService {
             const oldFilghtStatus = flight.status;
 
             // Update DB record
-            if(input.selection == 1) {
+            if(input.selection) {
                 flight.status = 3;
                 flight.confirmation_code = "Confirmed";
             } else {
@@ -465,20 +423,20 @@ export class FlightService {
             flight.approved_by = res.locals.user.id;
             flight.save();
 
-
             // Check if flight was set to approved from pending
             if (flight.status == 3 && oldFilghtStatus == 1) {
-                 // Updated the event history if flight was approved
-                const event = await Event.findById(input.eventID);
+                // Updated the event history if flight was approved
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             }
+
             
-            // Get Flight Attendee Info
-            var client = User.GetUserByAttendee(flight.attendee_id);
+
+             // Get Flight Attendee Info
+             var client = await User.GetUserByAttendee(flight.attendee_id);
 
             // Send email to user
-            const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
-            await email.sendEmail();
+            const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} has been booked.`);
+            email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
             log.verbose("flight booked", { flightID: flight.flight_id });
