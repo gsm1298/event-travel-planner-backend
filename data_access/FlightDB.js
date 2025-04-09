@@ -15,13 +15,15 @@ const baseQuery =
     `
     SELECT
         flight.flight_id, flight.attendee_id, flight.price, flight.depart_time,
-        flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status,
+        flight.depart_loc, flight.arrive_time, flight.arrive_loc, 
+        flight.status AS 'status_id', flightstatus.status AS 'status_name',
         flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code,
         flight.flight_number, flight.order_id, flight.itinerary,
         attendee.event_id,
         attendee.user_id
     FROM flight
         LEFT JOIN attendee ON flight.attendee_id = attendee.attendee_id
+        LEFT JOIN flightstatus ON flight.status = flightstatus.flightstatus_id
 `;
 
 export class FlightDB extends DB {
@@ -42,7 +44,7 @@ export class FlightDB extends DB {
                 INSERT INTO flight (attendee_id, price, depart_time, depart_loc, arrive_time, arrive_loc, status, approved_by, seat_num, seat_letter, confirmation_code, flight_number, order_id, itinerary)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             `;
-            const params = [flight.attendee_id, flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status, flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code, flight.flight_number, flight.order_id, flight.itinerary];
+            const params = [flight.attendee_id, flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time, flight.arrive_loc, flight.status?.id, flight.approved_by, flight.seat_num, flight.seat_letter, flight.confirmation_code, flight.flight_number, flight.order_id, flight.itinerary];
             this.executeQuery(query, params, "createFlight")
                 .then(result => {
                     if (result.insertId > 0) {
@@ -68,7 +70,7 @@ export class FlightDB extends DB {
                 WHERE flight_id = ?;
             `
             const params = [flight.price, flight.depart_time, flight.depart_loc, flight.arrive_time,
-            flight.arrive_loc, flight.status, flight.approved_by, flight.seat_num, flight.seat_letter,
+            flight.arrive_loc, flight.status.id, flight.approved_by, flight.seat_num, flight.seat_letter,
             flight.confirmation_code, flight.flight_number, flight.order_id, flight.flight_id];
 
             this.executeQuery(query, params, "updateFlight")
@@ -93,7 +95,7 @@ export class FlightDB extends DB {
                         const row = result[0];
                         resolve(new Flight(
                             row.flight_id, row.attendee_id, row.price, row.depart_time,
-                            row.depart_loc, row.arrive_time, row.arrive_loc, row.status,
+                            row.depart_loc, row.arrive_time, row.arrive_loc, { id: row.status_id, name: row.status_name },
                             row.approved_by, row.seat_num, row.seat_letter, row.confirmation_code,
                             row.flight_number, row.order_id, row.event_id
                         ));
@@ -116,7 +118,7 @@ export class FlightDB extends DB {
                         const row = result[0];
                         resolve(new Flight(
                             row.flight_id, row.attendee_id, row.price, null,
-                            null, null, null, row.status,
+                            null, null, null, { id: row.status_id, name: row.status_name },
                             row.approved_by, null, null, row.confirmation_code,
                             null, row.order_id, JSON.parse(row.itinerary)
                         ));
@@ -143,7 +145,7 @@ export class FlightDB extends DB {
                         row.depart_loc,
                         row.arrive_time,
                         row.arrive_loc,
-                        row.status,
+                        { id: row.status_id, name: row.status_name },
                         row.approved_by,
                         row.seat_num,
                         row.seat_letter,

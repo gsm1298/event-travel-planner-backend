@@ -226,10 +226,10 @@ export class FlightService {
         // Check if user already has a flight on hold
         const existingFlight = await Flight.getBookedFlight(input.eventID, user.id);
 
-        if (existingFlight.status == 1) {
+        if (existingFlight.status.id == 1) {
             log.verbose("user already has a flight on hold", { email: user.email, eventID: input.eventID });
             return res.status(400).json({ error: "Flight already on hold" });
-        } else if (existingFlight.status == 3) {
+        } else if (existingFlight.status.id == 3) {
             log.verbose("user already has a flight booked", { email: user.email, eventID: input.eventID });
             return res.status(400).json({ error: "Flight already booked" });
         }
@@ -292,7 +292,7 @@ export class FlightService {
 
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
-            overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, 1, 
+            overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, { id: 1 }, 
             null, null, null, null, null, data.id, JSON.stringify(dbItinerary));
             newHold.save();
 
@@ -396,17 +396,17 @@ export class FlightService {
 
             // Update DB record
             if(input.selection) {
-                flight.status = 3;
+                flight.status.id = 3;
                 flight.confirmation_code = "Confirmed";
             } else {
-                flight.status = 2
+                flight.status.id = 2
                 flight.confirmation_code = "Denied";
             }
             flight.approved_by = res.locals.user.id;
             flight.save();
 
             // Check if flight was set to approved from pending
-            if (flight.status == 3 && oldFilghtStatus == 1) {
+            if (flight.status.id == 3 && oldFilghtStatus.id == 1) {
                 // Updated the event history if flight was approved
                 const event = await Event.findById(input.eventID);
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);

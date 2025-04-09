@@ -19,7 +19,7 @@ export class Flight {
      * @param {String} depart_loc,
      * @param {Datetime} arrive_time,
      * @param {String} arrive_loc,
-     * @param {Integer} status,
+     * @param {Object} status,
      * @param {Integer} approved_by,
      * @param {Integer} seat_num,
      * @param {String} seat_letter,
