@@ -8,7 +8,7 @@ import { logger } from '../service/LogService.mjs';
 
 // Init child logger instance
 const log = logger.child({
-    dataAccess : "generalDb", //specify module where logs are from
+    dataAccess: "generalDb", //specify module where logs are from
 });
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
@@ -33,5 +33,25 @@ export class DB {
 
     close() {
         this.con.end();
+    }
+
+    /**
+     * Helper method to execute queries
+     * @param {String} query - SQL query string
+     * @param {Array} params - Parameters for the query
+     * @param {String} functionName - Name of the function calling this method (for logging purposes)
+     * @returns {Promise<any>} - Query result
+     */
+    executeQuery(query, params, functionName = "unkown") {
+        return new Promise((resolve, reject) => {
+            this.con.query(query, params, (error, result) => {
+                if (error) {
+                    log.error(`database query error at ${functionName}`, error);
+                    reject(error);
+                } else {
+                    resolve(result);
+                }
+            });
+        });
     }
 }

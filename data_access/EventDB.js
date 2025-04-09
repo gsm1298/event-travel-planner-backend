@@ -6,7 +6,6 @@ import { Organization } from '../business/Organization.js';
 import { Event } from '../business/Event.js';
 import { logger } from '../service/LogService.mjs';
 import { Flight } from '../business/Flight.js';
-import { ro } from 'date-fns/locale';
 
 // Init child logger instance
 const log = logger.child({
@@ -55,29 +54,23 @@ export class EventDB extends DB {
 
                 log.verbose("event create request", { event: event.name, eventCreatedBy: event.createdBy }); // log event creation request
 
-                this.con.query(query, params, (err, result) => {
-                    if (!err) {
+                this.executeQuery(query, params, "createEvent")
+                    .then(result => {
                         if (result.insertId > 0) {
-                            // Insert into eventhistory table
-                            this.con.query(`INSERT INTO eventhistory (event_id, updated_budget, updated_by) VALUES (?, ?, ?)`, [result.insertId, event.maxBudget, event.createdBy.id], (err, result) => {
-                                if (err) {
-                                    log.error("erorr adding inital budget to event history", err);
-                                }
-                            });
-                            resolve(result.insertId);
-                        }
-                        else { resolve(null); }
-                    }
-                    else {
-                        log.error("database query error from createEvent", err);
-                        reject(err);
-                    }
-                });
+                            const historyQuery = `INSERT INTO eventhistory (event_id, updated_budget, updated_by) VALUES (?, ?, ?)`;
+                            const historyParams = [result.insertId, event.maxBudget, event.createdBy.id];
+                            return this.executeQuery(historyQuery, historyParams, "createEventHistory")
+                                .then(() => resolve(result.insertId))
+                                .catch(err => {
+                                    log.error("error adding initial budget to event history", err);
+                                    reject(err);
+                                });
+                        } else { resolve(null); }
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
-                log.error("database try/catch error from createEvent", error);
                 reject(error);
             }
-
         });
     }
 
@@ -90,22 +83,18 @@ export class EventDB extends DB {
     addAttendeesToEvent(eventId, attendees) {
         return new Promise((resolve, reject) => {
             try {
-                log.verbose("attendees added to event", { eventId: eventId, userId: attendees.toString });
                 const query = `
                     INSERT INTO attendee (event_id, user_id)
                     VALUES ?
                 `;
                 const values = attendees.map(attendee => [eventId, attendee.id]);
-
-                this.con.query(query, [values], (err, result) => {
-                    if (!err) {
+                this.executeQuery(query, [values], "addAttendeesToEvent")
+                    .then(result => {
+                        log.verbose("attendees added to event", { eventId: eventId, userId: attendees.toString });
                         resolve(result.affectedRows > 0);
-                    }
-                    else {
-                        log.error(err);
-                        reject(err);
-                    }
-                });
+
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error(error);
                 reject(error);
@@ -123,17 +112,12 @@ export class EventDB extends DB {
     updateEventHistory(event, userId, flightId = null) {
         return new Promise((resolve, reject) => {
             try {
-                // Get the old event info
                 this.readEvent(event.id).then(oldEvent => {
-
                     var eventHistoryInsertQuery = `INSERT INTO eventhistory (event_id, updated_by,`;
                     var eventHistoryValues = `VALUES (?, ?,`;
                     var eventHistoryParams = [event.id, userId];
+                    var updates = false;
 
-                    // Boolean to make sure we only add the budget history if something was updated
-                    var updates = false
-
-                    // Check what was updated and add to the query
                     if (oldEvent?.maxBudget != event.maxBudget) {
                         eventHistoryInsertQuery += `original_budget, updated_budget,`;
                         eventHistoryValues += `?,?,`;
@@ -160,37 +144,25 @@ export class EventDB extends DB {
                     }
 
                     if (!updates) {
-                        resolve(false); // No updates to make
+                        resolve(false);
                         return;
                     }
 
-                    // Combine the query parts
-                    eventHistoryInsertQuery = eventHistoryInsertQuery.slice(0, -1) + `)`; // Remove the last comma and add closing parenthesis
-                    eventHistoryValues = eventHistoryValues.slice(0, -1) + `)`; // Remove the last comma and add closing parenthesis
-                    const query = eventHistoryInsertQuery + ' ' + eventHistoryValues; // Combine the query parts
+                    eventHistoryInsertQuery = eventHistoryInsertQuery.slice(0, -1) + `)`;
+                    eventHistoryValues = eventHistoryValues.slice(0, -1) + `)`;
+                    const query = eventHistoryInsertQuery + ' ' + eventHistoryValues;
 
-                    this.con.query(query, eventHistoryParams, (err, result) => {
-                        if (!err) {
-                            console.log(result); //DEBUG
-                            console.log(query); //DEBUG
-                            console.log(eventHistoryParams); //DEBUG
+                    this.executeQuery(query, eventHistoryParams, "updateEventHistory")
+                        .then(result => {
                             if (result.insertId > 0) {
                                 log.verbose("event history updated", { eventId: event.id, userId: userId });
                                 resolve(true);
-                            }
-                            else { resolve(false); }
-                        }
-                        else {
-                            log.error(err);
-                            reject(err);
-                        }
-                    });
-                }).catch(err => {
-                    log.error("error getting event to update history", err);
-                    reject(err);
-                });
+                            } else { resolve(false); }
+                        })
+                        .catch(err => { reject(err); });
+                }).catch(err => { reject(err); });
             } catch (error) {
-                log.error(error);
+                log.error("database try/catch error from updateEventHistory", error);
                 reject(error);
             }
         });
@@ -206,8 +178,8 @@ export class EventDB extends DB {
             try {
                 const query = baseEventQuery + 'WHERE event.event_id = ?';
 
-                this.con.query(query, [eventId], (err, rows) => {
-                    if (!err) {
+                this.executeQuery(query, [eventId], "readEvent")
+                    .then(rows => {
                         if (rows.length > 0) {
                             const row = rows[0];
                             resolve(new Event(
@@ -232,14 +204,9 @@ export class EventDB extends DB {
                                 Boolean(row.autoapprove.readUIntLE(0, 1)),
                                 row.autoapprove_threshold
                             ));
-                        }
-                        else { resolve(null); }
-                    }
-                    else {
-                        log.error("database query error from readEvent", err);
-                        reject(err);
-                    }
-                });
+                        } else { resolve(null); }
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error("database try/catch error from readEvent", error);
                 reject(error);
@@ -273,8 +240,8 @@ export class EventDB extends DB {
                     WHERE eventhistory.event_id = ?
                 `;
 
-                this.con.query(query, [eventId], (err, rows) => {
-                    if (!err) {
+                this.executeQuery(query, [eventId], "getEventHistory")
+                    .then(rows => {
                         if (rows.length > 0) {
                             resolve(
                                 rows.map(row => ({
@@ -294,14 +261,10 @@ export class EventDB extends DB {
                             );
                         }
                         else { resolve(null); }
-                    }
-                    else {
-                        log.error(err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
-                log.error(error);
+                log.error("database try/catch error from getEventHistory", error);
                 reject(error);
             }
         });
@@ -342,16 +305,12 @@ export class EventDB extends DB {
                 `;
                 const params = [event.name, event.destinationCode, event.createdBy.id, event.financeMan.id, event.startDate, event.endDate, event.org.id, event.inviteLink, event.description, event.pictureLink, event.maxBudget, event.maxBudget, event.autoApprove, event.autoApproveThreshold, event.id];
 
-                this.con.query(query, params, (err, result) => {
-                    if (!err) {
-                        log.verbose("event updated", { event: event.name, eventCreatedBy: event.createdBy }); // audit log the update request
+                this.executeQuery(query, params, "updateEvent")
+                    .then(result => {
+                        log.verbose("event updated", { event: event.name, eventCreatedBy: event.createdBy });
                         resolve(result.affectedRows > 0);
-                    }
-                    else {
-                        log.error("database query error from updateEvent", err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error("database try/catch error from updateEvent", error);
                 reject(error);
@@ -369,16 +328,12 @@ export class EventDB extends DB {
             try {
                 const query = `DELETE FROM event WHERE event_id = ?`;
 
-                this.con.query(query, [eventId], (err, result) => {
-                    if (!err) {
-                        log.verbose("event deleted", { eventId: eventId }); // audit log the deletion request
+                this.executeQuery(query, [eventId], "deleteEvent")
+                    .then(result => {
+                        log.verbose("event deleted", { eventId: eventId });
                         resolve(result.affectedRows > 0);
-                    }
-                    else {
-                        log.error("database query error from deleteEvent", err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error("database try/catch error from deleteEvent", error);
                 reject(error);
@@ -395,9 +350,8 @@ export class EventDB extends DB {
             try {
                 const query = baseEventQuery;
 
-                this.con.query(query, (err, rows) => {
-                    if (!err) {
-                        // Map the database rows to Event objects
+                this.executeQuery(query, [], "getAllEvents")
+                    .then(rows => {
                         const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
@@ -415,14 +369,9 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-
                         resolve(events);
-                    }
-                    else {
-                        log.error("database query error from getAllEvents", err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error("database try/catch error from getAllEvents", error);
                 reject(error);
@@ -444,9 +393,8 @@ export class EventDB extends DB {
 					    WHERE attendee.user_id = ?
                     `;
 
-                this.con.query(query, [userId], (err, rows) => {
-                    if (!err) {
-                        // Map the database rows to Event objects
+                this.executeQuery(query, [userId], "getEventsForAttendee")
+                    .then(rows => {
                         const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
@@ -464,14 +412,9 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-
                         resolve(events);
-                    }
-                    else {
-                        log.error("database query error from getEventsForAttendee", err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error("database try/catch error from getEventsForAttendee", error);
                 reject(error);
@@ -489,9 +432,8 @@ export class EventDB extends DB {
             try {
                 const query = baseEventQuery + 'WHERE event.created_by = ?';
 
-                this.con.query(query, [userId], (err, rows) => {
-                    if (!err) {
-                        // Map the database rows to Event objects
+                this.executeQuery(query, [userId], "getEventsCreatedByUser")
+                    .then(rows => {
                         const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
@@ -509,14 +451,9 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-
                         resolve(events);
-                    }
-                    else {
-                        log.error("database query error from getEventsCreatedByUser", err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error("database try/catch error from getEventsCreatedByUser", error);
                 reject(error);
@@ -534,9 +471,8 @@ export class EventDB extends DB {
             try {
                 const query = baseEventQuery + 'WHERE event.finance_man = ?';
 
-                this.con.query(query, [userId], (err, rows) => {
-                    if (!err) {
-                        // Map the database rows to Event objects
+                this.executeQuery(query, [userId], "getEventsForFinanceManager")
+                    .then(rows => {
                         const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
@@ -554,14 +490,9 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-
                         resolve(events);
-                    }
-                    else {
-                        log.error("database query error from getEventsForFinanceManager", err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
                 log.error("database try/catch error from getEventsForFinanceManager", error);
                 reject(error);
@@ -579,9 +510,8 @@ export class EventDB extends DB {
             try {
                 const query = baseEventQuery;
 
-                this.con.query(query, (err, rows) => {
-                    if (!err) {
-                        // Map the database rows to Event objects
+                this.executeQuery(query, [], "getPastEvents")
+                    .then(rows => {
                         const events = rows.map(row => new Event(
                             row.event_id,
                             row.name,
@@ -599,16 +529,11 @@ export class EventDB extends DB {
                             Boolean(row.autoapprove.readUIntLE(0, 1)),
                             row.autoapprove_threshold
                         ));
-
                         resolve(events);
-                    }
-                    else {
-                        log.error("database query error from getAllEvents", err);
-                        reject(err);
-                    }
-                });
+                    })
+                    .catch(err => { reject(err); });
             } catch (error) {
-                log.error("database try/catch error from getAllEvents", error);
+                log.error("database try/catch error from getPastEvents", error);
                 reject(error);
             }
         });
