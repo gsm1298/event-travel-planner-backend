@@ -449,7 +449,6 @@ export class FlightService {
 
             // Get Flight Attendee Info and Event Info
             const client = await User.GetUserByAttendee(flight.attendee_id);
-            const event = await Event.findById(input.eventID);
 
             // Check if flight was set to approved from pending
             if (flight.status.id == 3 && oldFilghtStatus.id == 1) {
