@@ -216,6 +216,13 @@ export class FlightService {
                 attendee_id = await User.GetAttendee(input.eventID, user.id);
                 if (!attendee_id) {
                     return res.status(403).json({ error: "User not an attendee" });
+                } else{
+                    const event = await Event.findById(input.eventID);
+
+                    // Check if event hases ended
+                    if (event.CheckIfEventIsOver()) {
+                        return res.status(403).json({ error: "Event has already ended" });
+                    }
                 }
             } else { return res.status(404).json({ error: "User not found" }); }
         } catch (error) {
@@ -376,6 +383,13 @@ export class FlightService {
         var input = req.body;
 
         try {
+            const event = await Event.findById(input.eventID);
+
+            // Check if event is over
+            if (event.CheckIfEventIsOver()) {
+                log.verbose("event is already over", { eventId: event.id });
+                return res.status(400).json({ message: "Event is already over" });
+            }
             var flight = await Flight.getFlightByID(input.id);
             if (!flight) {
                 return res.status(404).json({ error: "Flight not found" });
@@ -408,7 +422,6 @@ export class FlightService {
             // Check if flight was set to approved from pending
             if (flight.status == 3 && oldFilghtStatus == 1) {
                 // Updated the event history if flight was approved
-                const event = await Event.findById(input.eventID);
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             }
 

@@ -158,6 +158,12 @@ export class EventService {
                 return res.status(404).json({ message: "Event not found" });
             }
 
+            // Check if event has started or is over
+            if (event.CheckIfEventHasStarted() && event.CheckIfEventIsOver()) {
+                log.verbose("event has already started or is already over", { eventId: event.id });
+                return res.status(400).json({ message: "Event has already started or is already over" });
+            }
+
             // Ensure the user is authorized to invite attendees to this event
             if (event.createdBy.id !== res.locals.user.id) {
                 log.verbose("unauthorized user attempted to invite an attendees to an event", { userId: res.locals.user.id, eventId: event.id });
@@ -209,6 +215,12 @@ export class EventService {
             const event = await Event.findById(eventId);
             if (!event) {
                 return res.status(404).json({ message: "Event not found" });
+            }
+
+            // Check if event has started or is over
+            if (event.CheckIfEventHasStarted() && event.CheckIfEventIsOver()) {
+                log.verbose("event has already started or is already over", { eventId: event.id });
+                return res.status(400).json({ message: "Event has already started or is already over" });
             }
 
             // Ensure the user is authorized to invite attendees to this event
@@ -345,8 +357,13 @@ export class EventService {
                 return res.status(404).json({ message: "Event not found" });
             }
 
-            // Ensure the user is authorized to update this event
+            // Check if event has started or is over
+            if (event.CheckIfEventHasStarted() && event.CheckIfEventIsOver()) {
+                log.verbose("event has already started or is already over", { eventId: event.id });
+                return res.status(400).json({ message: "Event has already started or is already over" });
+            }
 
+            // Ensure the user is authorized to update this event
             if (event.createdBy.id !== user.id && event.financeMan.id !== user.id) {
               log.verbose("user attempted to make unauthorized event modifications", { userId: user.id, event: event })
                 return res.status(403).json({ message: "Unauthorized: You cannot update this event" });
