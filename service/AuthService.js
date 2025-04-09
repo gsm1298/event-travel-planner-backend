@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
+import ejs, { render } from 'ejs';
 import { User } from '../business/User.js';
 import { logger } from '../service/LogService.mjs';
 import Joi from 'joi';
@@ -89,47 +90,25 @@ export class AuthService {
                 // const email = new Email('no-reply@jlabupch.uk', user.email, 
                 //     'Your Two-Factor Authentication Code', 'Your verification code is: ' + otp);
 
+                // Email template
+                const templatePath = path.join(process.cwd(), 'email_templates', '2faEmail.ejs');
+
+                // Prepare data to pass into template
+                const templateData = {
+                    otp: otp
+                };
+
+                let htmlContent;
+                try {
+                    htmlContent = await ejs.renderFile(templatePath, templateData);
+                } catch (renderErr) {
+                    log.error("Error rendering email template:", renderErr);
+                }
+
+                // Send email using generated htmlContent
                 const email = new Email('no-reply@jlabupch.uk', user.email,
                     'Your Two-Factor Authentication Code', null,
-                    `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verification Code</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5; padding: 20px 0;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <tr>
-            <td align="center" style="background-color: #4c365d; padding: 40px 20px;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Verification Required</h1>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding: 40px 20px; text-align: center; background-color: #FFFFE2">
-              <p style="font-size: 18px; color: #333333; margin: 0 0 10px;">Your verification code is:</p>
-              <p style="font-size: 36px; color: #4c365d; margin: 0 0 20px; font-weight: bold;">${otp}</p>
-              <p style="font-size: 16px; color: #666666; margin: 0;">Enter this code in the app to verify your account.</p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="background-color: #f0f0f0; padding: 20px; text-align: center;">
-              <p style="font-size: 14px; color: #888888; margin: 0;">If you didn't request this, please ignore this email.</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-`
+                    htmlContent
                 );
 
                 // Send the email
