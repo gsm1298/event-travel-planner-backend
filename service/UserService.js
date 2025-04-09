@@ -66,7 +66,7 @@ export class UserService {
             await newUser.save();
 
             const sendEmail = new Email('no-reply@jlabupch.uk', newUser.email, "Account Created", `There has been an accound created for you.\n\n Your temporary password is: ${newUser.pass}`);
-            await sendEmail.sendEmail();
+            sendEmail.sendEmail();
 
             // Respond with the created event ID
             res.status(201).json({ message: "User created successfully" });

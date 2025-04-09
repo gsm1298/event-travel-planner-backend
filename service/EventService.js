@@ -372,7 +372,7 @@ export class EventService {
             if (success && updatedBudget) {
                 // Notify event planner of budget change.
                 const email = new Email('no-reply@jlabupch.uk', event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
-                await email.sendEmail();
+                email.sendEmail();
 
             }
 

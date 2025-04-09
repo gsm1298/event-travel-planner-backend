@@ -340,7 +340,7 @@ export class FlightService {
               null,
               htmlContent
             );
-            await email.sendEmail();
+            email.sendEmail();
 
             log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
             res.status(200).send(JSON.stringify(data));
