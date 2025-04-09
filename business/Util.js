@@ -12,7 +12,7 @@ export class Util {
                 destination_name: s.destination.name,
                 destination_city: s.destination.city_name,
                 destination_TZ: s.destination.time_zone,
-                duration: (s.duration).slice(2),
+                duration: s.duration,
                 terminal: s.origin_terminal,
                 departure_date: (s.departing_at).slice(0, 10),
                 departure_time: (s.departing_at).slice(11,16),
