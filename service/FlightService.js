@@ -195,6 +195,7 @@ export class FlightService {
 
         var input = req.body;
         var user;
+        var attendee_id;
 
         // JOI Validation
         const schema = Joi.object({
@@ -211,9 +212,26 @@ export class FlightService {
 
         try {
             user = await User.GetUserById(res.locals.user.id);
+            if (user) {
+                attendee_id = await User.GetAttendee(input.eventID, user.id);
+                if (!attendee_id) {
+                    return res.status(403).json({ error: "User not an attendee" });
+                }
+            } else { return res.status(404).json({ error: "User not found" }); }
         } catch (error) {
             log.error("uncaught user get request from flightservice");
-            res.status(500).json({ error: "Internal Server Error" });
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+
+        // Check if user already has a flight on hold
+        const existingFlight = await Flight.getBookedFlight(input.eventID, user.id);
+
+        if (existingFlight.status == 1) {
+            log.verbose("user already has a flight on hold", { email: user.email, eventID: input.eventID });
+            return res.status(400).json({ error: "Flight already on hold" });
+        } else if (existingFlight.status == 3) {
+            log.verbose("user already has a flight booked", { email: user.email, eventID: input.eventID });
+            return res.status(400).json({ error: "Flight already booked" });
         }
 
         try{
@@ -256,8 +274,6 @@ export class FlightService {
             const overallDepartureAirportCode = data.deptSlice.origin.iata_code;
             const overallArrivalAirportCode = data.deptSlice.destination.iata_code;
             const overallDuration = data.deptSlice.duration;
-            
-            var attendee_id = await User.GetAttendee(input.eventID, res.locals.user.id);
 
             // Init empty array to hold parsed slice data
             const slices = []
@@ -272,7 +288,7 @@ export class FlightService {
               offer_id: data.offer_id,
               itinerary: slices
             }
-            console.log(JSON.stringify(dbItinerary))
+            //console.log(JSON.stringify(dbItinerary))
 
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
@@ -326,8 +342,8 @@ export class FlightService {
             );
             await email.sendEmail();
 
-            res.status(200).send(JSON.stringify(data));
             log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
+            res.status(200).send(JSON.stringify(data));
 
         } catch (error) {
             log.error("Error at Booking: ", error);
