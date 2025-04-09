@@ -12,7 +12,7 @@ export class Util {
                 destination_name: s.destination.name,
                 destination_city: s.destination.city_name,
                 destination_TZ: s.destination.time_zone,
-                duration: (s.duration).slice(2),
+                duration: s.duration,
                 terminal: s.origin_terminal,
                 departure_date: (s.departing_at).slice(0, 10),
                 departure_time: (s.departing_at).slice(11,16),
@@ -27,7 +27,9 @@ export class Util {
             duration: slice.duration,
             origin: slice.origin.iata_code,
             destination: slice.destination.iata_code,
-            flight_type: stops.length == 1 ? "Non-Stop"  : "Connecting",
+            flight_type: stops.length == 1 ? "Non-Stop"  : stops.length == 2 ? "1 Stop" : `${stops.length + 1} Stops`,
+            departure_time: slice.segments[0].departing_at,
+            arrival_time: slice.segments[(slice.segments.length - 1)].arriving_at,
             itinerary: stops
         }
     }
