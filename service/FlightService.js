@@ -405,24 +405,35 @@ export class FlightService {
             flight.approved_by = res.locals.user.id;
             flight.save();
 
+            // Get Flight Attendee Info and Event Info
+            const client = await User.GetUserByAttendee(flight.attendee_id);
+            const event = await Event.findById(input.eventID);
+
             // Check if flight was set to approved from pending
             if (flight.status.id == 3 && oldFilghtStatus.id == 1) {
                 // Updated the event history if flight was approved
-                const event = await Event.findById(input.eventID);
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             }
 
-            
+            // Send email to user based on flight status
+            // 2 = Denied, 3 = Approved
+            switch (flight.status.id) {
+                case 2:
+                    // Send email to user
+                    var email = new Email('no-reply@jlabupch.uk', client.email, "Flight Denied", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Denied.`);
+                    await email.sendEmail();
 
-             // Get Flight Attendee Info
-             var client = await User.GetUserByAttendee(flight.attendee_id);
+                    log.verbose("flight denied", { flightID: flight.flight_id });
+                    return res.status(200).json({ success: 'Flight Denied' });
 
-            // Send email to user
-            const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} has been booked.`);
-            await email.sendEmail();
-
-            res.status(200).json({ success: 'Flight Booked' });
-            log.verbose("flight booked", { flightID: flight.flight_id });
+                case 3:
+                    // Send email to user
+                    var email = new Email('no-reply@jlabupch.uk', client.email, "Flight Approved", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Approved.`);
+                    await email.sendEmail();
+    
+                    log.verbose("flight approved", { flightID: flight.flight_id });
+                    return res.status(200).json({ success: 'Flight Approved' });
+            }
 
         } catch (error) {
             log.error("Error at Booking: ", error);
