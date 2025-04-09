@@ -27,7 +27,9 @@ export class Util {
             duration: slice.duration,
             origin: slice.origin.iata_code,
             destination: slice.destination.iata_code,
-            flight_type: stops.length == 1 ? "Non-Stop"  : "Connecting",
+            flight_type: stops.length == 1 ? "Non-Stop"  : stops.length == 2 ? "1 Stop" : `${stops.length + 1} Stops`,
+            departure_time: slice.segments[0].departing_at,
+            arrival_time: slice.segments[(slice.segments.length - 1)].arriving_at,
             itinerary: stops
         }
     }
