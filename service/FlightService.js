@@ -360,7 +360,7 @@ export class FlightService {
         var input = req.body;
 
         try {
-            var flight = await Flight.getFlightByID(input.flightID);
+            var flight = await Flight.getFlightByID(input.id);
             if (!flight) {
                 return res.status(404).json({ error: "Flight not found" });
             }
@@ -379,7 +379,7 @@ export class FlightService {
             const oldFilghtStatus = flight.status;
 
             // Update DB record
-            if(input.selection == 1) {
+            if(input.selection) {
                 flight.status = 3;
                 flight.confirmation_code = "Confirmed";
             } else {
@@ -399,10 +399,10 @@ export class FlightService {
             
 
              // Get Flight Attendee Info
-             var client = User.GetUserByAttendee(flight.attendee_id);
+             var client = await User.GetUserByAttendee(flight.attendee_id);
 
             // Send email to user
-            const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight to ${flight.destination_airport} has been booked.`);
+            const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} has been booked.`);
             await email.sendEmail();
 
             res.status(200).json({ success: 'Flight Booked' });
