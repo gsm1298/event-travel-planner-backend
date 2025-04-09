@@ -48,6 +48,8 @@ export class FlightService {
         app.get('/flights/eventflights/:id', this.getEventFlights);
 
         app.get('/flights/bookedflight/:id', this.getBookedFlight);
+        
+        app.get('/flights/seats/:id', this.getSeatMap);
     }
 
 
@@ -147,6 +149,7 @@ export class FlightService {
                 throw new Error("Invalid Flight Type!");
             }
 
+            var search_key = offers.data.client_key;
 
             // Parse through api data and store necessary info to data
             offers.data.offers.forEach((o) => {
@@ -172,7 +175,8 @@ export class FlightService {
                     logo: o.owner.logo_symbol_url,
                     flight_class: o.slices[0].fare_brand_name,
                     flight_type: slices[0].flight_type,
-                    details: slices
+                    details: slices,
+                    search_key: search_key
                 })
 
             });
@@ -216,6 +220,13 @@ export class FlightService {
                 attendee_id = await User.GetAttendee(input.eventID, user.id);
                 if (!attendee_id) {
                     return res.status(403).json({ error: "User not an attendee" });
+                } else{
+                    const event = await Event.findById(input.eventID);
+
+                    // Check if event hases ended
+                    if (event.CheckIfEventIsOver()) {
+                        return res.status(403).json({ error: "Event has already ended" });
+                    }
                 }
             } else { return res.status(404).json({ error: "User not found" }); }
         } catch (error) {
@@ -400,6 +411,13 @@ export class FlightService {
         var input = req.body;
 
         try {
+            const event = await Event.findById(input.eventID);
+
+            // Check if event is over
+            if (event.CheckIfEventIsOver()) {
+                log.verbose("event is already over", { eventId: event.id });
+                return res.status(400).json({ message: "Event is already over" });
+            }
             var flight = await Flight.getFlightByID(input.id);
             if (!flight) {
                 return res.status(404).json({ error: "Flight not found" });
@@ -501,5 +519,21 @@ export class FlightService {
             log.error("Error retrieving booked flight for user:", error);
             res.status(500).json({ error: "Unable to fetch flight" });
         }
+    }
+
+    // Retrieve Seat Map for ID
+    /**@type {express.RequestHandler} */
+    async getSeatMap(req, res) {
+      try {
+        const offer = req.params.id;
+        const seats = await duffel.seatMaps.get({
+          offer_id: offer
+        })
+
+        res.status(200).json(seats) 
+      } catch (error) {
+          log.error("Error retrieving seat map", error);
+          res.status(500).json({ error: "Unable to fetch seat map" });
+      }
     }
 }

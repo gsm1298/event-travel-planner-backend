@@ -77,6 +77,28 @@ export class Event {
     }
 
     /**
+     * Check if the event is over
+     * @returns {Boolean} True if the event is over, false otherwise
+     * @throws {Error}
+     */
+    CheckIfEventIsOver() {
+        const today = new Date();
+        const endDate = new Date(this.endDate);
+        return today > endDate;
+    }
+
+    /**
+     * Check if the event has started
+     * @returns {Boolean} True if the event has started, false otherwise
+     * @throws {Error}
+     */
+    CheckIfEventHasStarted() {
+        const today = new Date();
+        const startDate = new Date(this.startDate);
+        return today > startDate;
+    }
+
+    /**
      * Update the event history
      * @returns {Promise<void>}
      * @param {Integer} userId - The user ID of the user who is updating the event history
