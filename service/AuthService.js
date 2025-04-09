@@ -112,7 +112,7 @@ export class AuthService {
                 );
 
                 // Send the email
-                await email.sendEmail();
+                email.sendEmail();
 
                 //Create a temporary token to send to the user
                 var token = jwt.sign({ response: "2FA Code Sent to email.", email: user.email, userId: user.id }, jwtSecret, { expiresIn: '5m' });
@@ -391,7 +391,7 @@ export class AuthService {
 
                         try {
                             // Send the email
-                            await email.sendEmail();
+                            email.sendEmail();
                             return res.status(200).json({ response: "Temporary password Sent to email." });
                         } catch (err) {
                             log.error("Error sending email:", err);

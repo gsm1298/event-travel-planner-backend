@@ -218,7 +218,7 @@ export class User {
                     if (id > 0) {
                         log.verbose("user succefully created (user import)", { email: user.email });
                         const email = new Email('no-reply@jlabupch.uk', user.email, "Account Created", `An account has been created for you.\n\nYour temporary password is: ${user.pass}`);
-                        await email.sendEmail();
+                        email.sendEmail();
                     } else {
                         log.error("user could not be created (user import)", { email: user.email });
                     }
