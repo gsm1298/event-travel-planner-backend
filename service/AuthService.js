@@ -136,7 +136,7 @@ export class AuthService {
                 await email.sendEmail();
 
                 //Create a temporary token to send to the user
-                var token = jwt.sign({ response: "2FA Code Sent to email." }, jwtSecret, { expiresIn: '5m' });
+                var token = jwt.sign({ response: "2FA Code Sent to email.", email: user.email, userId: user.id }, jwtSecret, { expiresIn: '5m' });
                 return res.status(200).cookie("temp", token, { httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain }).json({ response: "2FA Code Sent to email." });
 
             }
@@ -172,7 +172,12 @@ export class AuthService {
                     // Unset invalid cookie
                     return res.status(401).cookie("temp", "", { httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).json({ error: "Not authenticated" });
                 }
+                res.locals.user = decoded;
+                
+
             });
+
+
         } catch (err) {
             log.error("Error at MFA Authenticator:  ", err);
             res.status(500).json({ error: "Internal server error" });
@@ -183,12 +188,24 @@ export class AuthService {
             const user = new User();
 
             // Check valid login
+
+
             const valid = await user.CheckMFA(input.email, input.mfaCode);
             if (!valid) {
                 log.verbose("Incorrect 2FA code", { email: input.email, mfaCode: input.mfaCode });
                 return res.status(401).json({ error: "Incorrect 2FA Code" });
             }
             else {
+                // Check for JWT tampering or email switching in login
+                if (res.locals.user.email !== input.email || res.locals.user.userId !== user.id) {
+                    log.warn("Potential JWT tampering or email mismatch detected", {
+                        expectedEmail: res.locals.user.email,
+                        providedEmail: input.email,
+                    });
+                    return res.status(401).json({ error: "Authentication failed due to email mismatch" });
+                }
+                
+
                 //LOGIN VALID, 2FA SUCCESS
                 if (!user.mfaEnabled) {
                     // If MFA is not enabled, set it to true
