@@ -245,7 +245,8 @@ export class FlightService {
                 slices: confirmation.data.slices,
                 deptSlice: confirmation.data.slices[0],
                 airline: confirmation.data.owner.name,
-                airlineLogo: confirmation.data.owner.logo_lockup_url
+                airlineLogo: confirmation.data.owner.logo_symbol_url,
+                airlineLogoLockup: confirmation.data.owner.logo_lockup_url
             }
 
             const overallDepartureTime = data.deptSlice.segments[0].departing_at;
@@ -304,7 +305,7 @@ export class FlightService {
                 }),
                 price: data.totalPrice,
                 duration: overallDuration.replace('P', '').replace('D', 'd ').replace('T', '').replace('H', 'h ').replace('M', 'm'),
-                airlineLogo: data.airlineLogo
+                airlineLogo: data.airlineLogoLockup
               }
             };
 

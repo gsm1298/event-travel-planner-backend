@@ -12,7 +12,7 @@ const log = logger.child({
 export class Flight {
     /**
      * @constructor
-     * @param {Integer} flight_id
+     * @param {Integer} flight_id,
      * @param {Integer} attendee_id,
      * @param {Float} price,
      * @param {Datetime} depart_time,
@@ -25,8 +25,8 @@ export class Flight {
      * @param {String} seat_letter,
      * @param {String} confirmation_code,
      * @param {String} flight_number,
-     * @param {String} order_id
-     * @param {Integer} itinerary
+     * @param {String} order_id,
+     * @param {Object} itinerary
      */
     constructor(
         flight_id = null, attendee_id = null, price = null, depart_time = null,

@@ -6,8 +6,12 @@ export class Util {
             stops.push({
                 origin: s.origin.iata_code,
                 origin_name: s.origin.name,
+                origin_city: s.origin.city_name,
+                origin_TZ: s.origin.time_zone,
                 destination: s.destination.iata_code,
                 destination_name: s.destination.name,
+                destination_city: s.destination.city_name,
+                destination_TZ: s.destination.time_zone,
                 duration: (s.duration).slice(2),
                 terminal: s.origin_terminal,
                 departure_date: (s.departing_at).slice(0, 10),
