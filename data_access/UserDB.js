@@ -99,7 +99,7 @@ export class UserDB extends DB {
     /**
      * Gets a user based on a given email.
      * @param {String} email
-     * @returns {User} user object
+     * @returns {Promise<User>} user object
      */
     GetUserByEmail(email) {
         return new Promise((resolve, reject) => {
@@ -123,7 +123,7 @@ export class UserDB extends DB {
     /**
      * Gets a user based on a given id.
      * @param {Integer} id
-     * @returns {User} user object
+     * @returns {Promise<User>} user object
      */
     GetUserById(id) {
         return new Promise((resolve, reject) => {
@@ -146,7 +146,7 @@ export class UserDB extends DB {
 
     /**
      * Gets all users.
-     * @returns {User[]} Array of user object
+     * @returns {Promise<User[]>} Array of user object
      */
     GetAllUsers() {
         return new Promise((resolve, reject) => {
@@ -168,7 +168,7 @@ export class UserDB extends DB {
     /**
     * Gets all users in an org.
     * @param {Integer} orgId
-    * @returns {User[]} Array of user object
+    * @returns {Promise<User[]>} Array of user object
     */
     GetAllUsersFromOrg(orgId) {
         return new Promise((resolve, reject) => {
@@ -190,7 +190,7 @@ export class UserDB extends DB {
     /**
     * Gets all attendees of an event.
     * @param {Integer} eventId
-    * @returns {User[]} Array of user object
+    * @returns {Promise<User[]>} Array of user object
     */
     GetAllAttendeesInEvent(eventId) {
         return new Promise((resolve, reject) => {
@@ -216,7 +216,7 @@ export class UserDB extends DB {
      * Get Attendee
      * @param {Integer} eventId
      * @param {Integer} userId
-     * @returns {Integer} Attendee ID
+     * @returns {Promise<Integer>} Attendee ID
      */
     GetAttendee(eventId, userId) {
         return new Promise((resolve, reject) => {
@@ -230,7 +230,7 @@ export class UserDB extends DB {
     /**
      * Get User via Attendee
      * @param {Integer} attendeeId
-     * @returns {User} user
+     * @returns {Promise<User>} user
      */
     GetUserByAttendee(attendeeId) {
         return new Promise((resolve, reject) => {

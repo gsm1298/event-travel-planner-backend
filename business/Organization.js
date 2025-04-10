@@ -24,7 +24,7 @@ export class Organization {
      * Gets an Organization by ID. 
      * If successful return the Organization object, if not null
      * @param {Integer} orgID
-     * @returns {Organization | null}
+     * @returns {Promise<Organization | null>}
      * @throws {Error}
      */
     static async getOrg(orgID) {
@@ -49,7 +49,7 @@ export class Organization {
     /**
      * Get all Organizations. 
      * If successful return an array of Organization objects, if not null
-     * @returns {Organization[] | null}
+     * @returns {Promise<Organization[] | null>}
      * @throws {Error}
      */
     static async getOrgs() {
@@ -72,7 +72,7 @@ export class Organization {
      /**
      * Updates or Creates an Organization. 
      * If successful return the Organization object, if not null
-     * @returns {Organization | null}
+     * @returns {Promise<Organization | null>}
      * @throws {Error}
      */
      async save() {

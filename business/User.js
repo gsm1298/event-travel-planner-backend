@@ -57,7 +57,7 @@ export class User {
     /**
      * Generates a MFA secret for the user
      * This is used to generate a TOTP code for the user to use for MFA
-     * @returns {secret}
+     * @returns {Promise<secret>}
      * 
      */
     async GenerateSecret() {
@@ -71,7 +71,7 @@ export class User {
 
     /**
     * Generates a MFA token for the user
-    * @returns {String} MFA token   
+    * @returns {Promise<String>} MFA token   
     */
     async GenerateToken() {
         const totpCode = speakeasy.totp({
@@ -91,7 +91,7 @@ export class User {
      * If it is, sets the user object variables to be that of the user logging in.
      * @param {String} email
      * @param {String} password
-     * @returns {Boolean} login success
+     * @returns {Promise<Boolean>} login success
      */
     async CheckLogin(email, password) {
         const db = new UserDB();
@@ -120,7 +120,7 @@ export class User {
      * If it is, sets the user object variables to be that of the user logging in.
      * @param {String} email
      * @param {String} mfaCode
-     * @returns {Boolean} login success
+     * @returns {Promise<Boolean>} login success
      */
     async CheckMFA(email, mfaCode) {
         const db = new UserDB();
@@ -167,10 +167,10 @@ export class User {
     /**
      * Hashes a password
      * @param {String} password
-     * @returns {String} hashed password
+     * @returns {Promise<String>} hashed password
      */
     static async hashPass(password) {
-        return bcrypt.hash(password, 10);
+        return await bcrypt.hash(password, 10);
     }
 
     /**
@@ -243,7 +243,7 @@ export class User {
     /**
      * Gets a user by their id
      * @param {Intager} id
-     * @returns {User} User object
+     * @returns {Promise<User>} User object
      */
     static async GetUserById(id) {
         const db = new UserDB();
@@ -260,7 +260,7 @@ export class User {
         /**
      * Gets a user by their email
      * @param {String} email
-     * @returns {User} User object
+     * @returns {Promise<User>} User object
      */
         static async GetUserByEmail(email) {
             const db = new UserDB();
@@ -276,7 +276,7 @@ export class User {
 
     /**
      * Gets all users
-     * @returns {User[]} Array of User objects
+     * @returns {Promise<User[]>} Array of User objects
      */
     static async GetAllUsers() {
         const db = new UserDB();
@@ -293,7 +293,7 @@ export class User {
     /**
      * Gets all users in an org
      * @param {Intager} orgId
-     * @returns {User[]} Array of User objects
+     * @returns {Promise<User[]>} Array of User objects
      */
     static async GetAllUsersFromOrg(orgId) {
         const db = new UserDB();
@@ -310,7 +310,7 @@ export class User {
     /**
      * Gets all users in an event
      * @param {Intager} eventId
-     * @returns {User[]} Array of User objects
+     * @returns {Promise<User[]>} Array of User objects
      */
     static async GetAllAttendeesInEvent(eventId) {
         const db = new UserDB();
@@ -327,7 +327,7 @@ export class User {
     /**
      * Get Attendee ID
      * @param {Integer} eventId 
-     * @param {Integer} userId 
+     * @param {Promise<Integer>} userId 
      */
     static async GetAttendee(eventId, userId) {
         const db = new UserDB();
@@ -345,7 +345,7 @@ export class User {
     /**
      * Get flight user
      * @param {Integer} attendeeId
-     * @returns {User} user
+     * @returns {Promise<User>} user
      */
     static async GetUserByAttendee(attendeeId) {
         const db = new UserDB();

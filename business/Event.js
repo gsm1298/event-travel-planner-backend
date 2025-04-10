@@ -103,6 +103,7 @@ export class Event {
      * @returns {Promise<void>}
      * @param {Integer} userId - The user ID of the user who is updating the event history
      * @param {Integer | null} flightId - The flight ID of the flight being approved (optional)
+     * @returns {Promise<void>}
      * @throws {Error}
      */
     async updateEventHistory(userId, flightId = null) {

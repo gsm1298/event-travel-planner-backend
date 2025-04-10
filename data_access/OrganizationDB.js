@@ -17,7 +17,7 @@ export class OrganizationDB extends DB {
     /**
      * Gets an Organization based on an ID.
      * @param {Integer} id
-     * @returns {Organization | null} Organization object if found or null if not
+     * @returns {Promise<Organization | null>} Organization object if found or null if not
      */
     GetOrganizationById(id) {
         return new Promise((resolve, reject) => {
@@ -40,7 +40,7 @@ export class OrganizationDB extends DB {
 
     /**
      * Gets all Organizations.
-     * @returns {Organization[] | null} An array of Organization objects if anything is found or null if not
+     * @returns {Promise<Organization[] | null>} An array of Organization objects if anything is found or null if not
      */
     GetAllOrganizations() {
         return new Promise((resolve, reject) => {
@@ -62,39 +62,43 @@ export class OrganizationDB extends DB {
     /**
      * Creates an Organization
      * @param {Organization} org
-     * @returns {Organization | null} the created organization object if successful or null if not
+     * @returns {Promise<Organization | null>} the created organization object if successful or null if not
      */
     CreateOrganization(org) {
-        var str = `
-            INSERT INTO organization (name)
-            VALUES (?)`;
-        return this.executeQuery(str, [org.name], "CreateOrganization")
-            .then(result => {
-                if (result.insertId > 0) {
-                    log.verbose("organization created", { orgName: org.name });
-                    resolve(new Organization(result.insertId, org.name));
-                }
-                resolve(null);
-            }).catch(error => { reject(error); });
+        return new Promise((resolve, reject) => {
+            var str = `
+                INSERT INTO organization (name)
+                VALUES (?)`;
+            return this.executeQuery(str, [org.name], "CreateOrganization")
+                .then(result => {
+                    if (result.insertId > 0) {
+                        log.verbose("organization created", { orgName: org.name });
+                        resolve(new Organization(result.insertId, org.name));
+                    }
+                    resolve(null);
+                }).catch(error => { reject(error); });
+        });
     }
 
     /**
      * Updates an Organization
      * @param {Organization} org
-     * @returns {Boolean} True or False based on if the update was successful
+     * @returns {Promise<Boolean>} True or False based on if the update was successful
      */
     UpdateOrganization(org) {
-        var str = `
-            UPDATE organization SET
-                organization.name = ?
-            WHERE organization.org_id = ?`;
-        return this.executeQuery(str, [org.name, org.id], "UpdateOrganization")
-            .then(result => {
-                if (result.affectedRows > 0) {
-                    log.verbose("organization updated", { orgName: org.name, orgId: org.id });
-                    resolve(true);
-                }
-                resolve(false);
-            }).catch(error => { reject(error); });
+        return new Promise((resolve, reject) => {
+            var str = `
+                UPDATE organization SET
+                    organization.name = ?
+                WHERE organization.org_id = ?`;
+            return this.executeQuery(str, [org.name, org.id], "UpdateOrganization")
+                .then(result => {
+                    if (result.affectedRows > 0) {
+                        log.verbose("organization updated", { orgName: org.name, orgId: org.id });
+                        resolve(true);
+                    }
+                    resolve(false);
+                }).catch(error => { reject(error); });
+        });
     }
 }

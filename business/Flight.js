@@ -102,7 +102,8 @@ export class Flight {
     /**
      * Get Flight By ID
      * @param {Integer} flightID
-     *  
+     *  @returns {Promise<Flight>} Flight OBJ
+     * @throws {Error}
      */
     static async getFlightByID(flightID) {
         log.verbose("flight called by ID", {flightId: flightID});
@@ -120,6 +121,8 @@ export class Flight {
      * Get Booked Flight for User 
      * @param {Integer} eventID
      * @param {Integer} userID 
+     * @returns {Promise<Flight>} Flight OBJ
+     * @throws {Error}
      */
     static async getBookedFlight(eventID, userID) {
         const db = new FlightDB();
