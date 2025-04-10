@@ -6,6 +6,7 @@ import { AuthService } from './AuthService.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
+import { Email } from '../business/Email.js';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
