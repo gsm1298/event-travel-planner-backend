@@ -233,7 +233,7 @@ export class OrganizationService {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            const users = await User.GetAllUsersFromOrg(user.org.id);
+            const users = await User.GetAllUsersFromOrg(req.params.id);
             if (users) {
                 // Remove some of the fields and create new array of objects to return
                 const returnUsers = users.map(user => ( 
