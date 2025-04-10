@@ -48,8 +48,6 @@ export class FlightService {
         app.get('/flights/eventflights/:id', this.getEventFlights);
 
         app.get('/flights/bookedflight/:id', this.getBookedFlight);
-        
-        app.get('/flights/seats/:id', this.getSeatMap);
     }
 
 
@@ -304,7 +302,7 @@ export class FlightService {
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
             overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, { id: 1 }, 
-            null, null, null, null, null, data.id, JSON.stringify(dbItinerary));
+            null, null, null, null, data.id, JSON.stringify(dbItinerary), null);
             const newHoldID = await newHold.save();
 
             const templatePath = path.join(process.cwd(), 'email_templates', 'flightHoldEmail.ejs');
@@ -489,7 +487,7 @@ export class FlightService {
     // For Finance Use
     /**@type {express.RequestHandler} */
     async getEventFlights(req, res) {
-        log.verbose("getEventFlights", { flightID: req.params.id });
+        log.verbose("getEventFlights", { eventID: req.params.id });
 
         try {
             const eventID = req.params.id;
@@ -512,6 +510,7 @@ export class FlightService {
         try {
             const eventID = req.params.id;
             const flight = await Flight.getBookedFlight(eventID, res.locals.user.id);
+            console.log(flight);
             if(flight) {
                 res.status(200).json(flight);
             } else {
@@ -523,19 +522,4 @@ export class FlightService {
         }
     }
 
-    // Retrieve Seat Map for ID
-    /**@type {express.RequestHandler} */
-    async getSeatMap(req, res) {
-      try {
-        const offer = req.params.id;
-        const seats = await duffel.seatMaps.get({
-          offer_id: offer
-        })
-
-        res.status(200).json(seats) 
-      } catch (error) {
-          log.error("Error retrieving seat map", error);
-          res.status(500).json({ error: "Unable to fetch seat map" });
-      }
-    }
 }

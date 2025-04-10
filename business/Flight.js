@@ -31,8 +31,8 @@ export class Flight {
     constructor(
         flight_id = null, attendee_id = null, price = null, depart_time = null,
         depart_loc = null, arrive_time = null, arrive_loc = null, status = null, approved_by = null,
-        seat_num = null, seat_letter = null, confirmation_code = null, flight_number = null, 
-        order_id = null, itinerary = null
+        seat_num = null, confirmation_code = null, flight_number = null, 
+        order_id = null, itinerary = null, owner = null
     ){
         this.flight_id = flight_id,
         this.attendee_id = attendee_id,
@@ -44,11 +44,11 @@ export class Flight {
         this.status = status,
         this.approved_by = approved_by,
         this.seat_num = seat_num,
-        this.seat_letter = seat_letter,
         this.confirmation_code = confirmation_code,
         this.flight_number = flight_number,
         this.order_id = order_id,
-        this.itinerary = itinerary
+        this.itinerary = itinerary,
+        this.owner = owner
     }
 
     /**
