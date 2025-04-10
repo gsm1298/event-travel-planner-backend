@@ -2,6 +2,13 @@ import { User } from "../business/User.js";
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs';
 import { AuthService } from './AuthService.js';
+import dotenv from 'dotenv';
+import path from 'path';
+import jwt from 'jsonwebtoken';
+
+dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
+
+const jwtSecret = process.env.jwtSecret;
 
 // Init child logger instance
 const log = logger.child({
