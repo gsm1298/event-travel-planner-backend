@@ -105,7 +105,7 @@ export class UserService {
                 phoneNum: Joi.string().optional(),
                 gender: Joi.string().valid('m', 'f').optional(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
-                dob: Joi.date().format("YYYY-MM-DD").optional(),
+                dob: Joi.date().format("YYYY-MM-DD").max('now').min('1900-01-01').optional(),
                 profilePic: Joi.string().allow(null, '').optional(),
                 password: Joi.string().min(6).optional(),
             });

@@ -5,11 +5,14 @@ import jwt from 'jsonwebtoken';
 import ejs, { render } from 'ejs';
 import { User } from '../business/User.js';
 import { logger } from '../service/LogService.mjs';
-import Joi from 'joi';
+import JoiBase from 'joi';
+import JoiDate from '@joi/date';
 import { Email } from '../business/Email.js';
 import { UserDB } from '../data_access/UserDB.js';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
+
+const Joi = JoiBase.extend(JoiDate); // Extend Joi with date validation
 
 // Init child logger instance
 const log = logger.child({
@@ -271,7 +274,7 @@ export class AuthService {
                 gender: Joi.string().valid('m', 'f').required(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
                 profilePic: Joi.string().base64().optional(), 
-                dob: Joi.date().required().max('now').min('1900-01-01'),
+                dob: Joi.date().format('YYYY-MM-DD').required().max('now').min('1900-01-01'),
                 password: Joi.string().min(4).required()
             });
 
