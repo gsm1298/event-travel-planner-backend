@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import { Email } from '../business/Email.js';
+import { Organization } from "../business/Organization.js";
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -69,7 +70,7 @@ export class UserService {
             }
 
             // Check if the organization exists
-            const orgCheck = await User.GetOrgById(req.body.org);
+            const orgCheck = await Organization.getOrg(req.body.org);
             if (!orgCheck) {
                 return res.status(400).json({ error: "Organization not found" });
             }
