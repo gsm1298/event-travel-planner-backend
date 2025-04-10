@@ -21,10 +21,10 @@ export class OrganizationService {
 
         // Define all routes for organization operations
         this.app.post('/organization', this.createOrganization);
+        this.app.get('/organization/:id/users', this.getUsersInOrg);
         this.app.get('/organization/:id', this.getOrganizationById);
         this.app.get('/organizations', this.getAllOrganizations);
         this.app.put('/organization/:id', this.updateOrganization);
-        this.app.get('/organization/:id/users', this.getUsersInOrg);
         this.app.post('/organization/:id/importUsers', this.importUsers);
         //this.app.delete('/organization/:id', this.deleteOrganization);
     }
