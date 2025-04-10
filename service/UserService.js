@@ -11,7 +11,7 @@ dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')
 
 const jwtSecret = process.env.jwtSecret;
 
-const joi = JoiBase.extend(JoiDate); // Extend Joi with date validation
+const Joi = JoiBase.extend(JoiDate); // Extend Joi with date validation
 
 // Init child logger instance
 const log = logger.child({
