@@ -21,10 +21,10 @@ export class OrganizationService {
 
         // Define all routes for organization operations
         this.app.post('/organization', this.createOrganization);
+        this.app.get('/organization/:id/users', this.getUsersInOrg);
         this.app.get('/organization/:id', this.getOrganizationById);
         this.app.get('/organizations', this.getAllOrganizations);
         this.app.put('/organization/:id', this.updateOrganization);
-        this.app.get('/organization/:id/users', this.getUsersInOrg);
         this.app.post('/organization/:id/importUsers', this.importUsers);
         //this.app.delete('/organization/:id', this.deleteOrganization);
     }
@@ -233,7 +233,7 @@ export class OrganizationService {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            const users = await User.GetAllUsersFromOrg(user.org.id);
+            const users = await User.GetAllUsersFromOrg(req.params.id);
             if (users) {
                 // Remove some of the fields and create new array of objects to return
                 const returnUsers = users.map(user => ( 
