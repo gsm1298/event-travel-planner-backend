@@ -198,7 +198,7 @@ export class AuthService {
                     email: user.email
                 };
 
-                log.verbose("user MFA enabled, login sucessful", userData); //log a user with MFA enabled and a successful login
+                log.verbose("user MFA enabled, login sucessful", { userId: user.id, email: user.email }); //log a user with MFA enabled and a successful login
 
                 // Set the session
                 var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });

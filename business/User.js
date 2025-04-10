@@ -130,8 +130,11 @@ export class User {
             // Check if user was found
             if (!user) { return false; }
 
-            if (!user.mfaSecret) { return false; } // No MFA secret set for user
-            log.verbose("user exists upon check, mfa does not", { userId: user.id, email: email });
+            if (!user.mfaSecret) { 
+                log.verbose("user exists upon check, mfa does not", { userId: user.id, email: email });
+                return false; 
+            } // No MFA secret set for user
+            
             // Check if 2FA code is correct
             //const match = await bcrypt.compare(mfaCode, user.hashedMfaCode)
 
@@ -144,11 +147,17 @@ export class User {
                 window: 1, // Allow a +/- 1 step (so 180s total: 60s before, 60s current, 60s after)
             });
 
-            log.verbose("user mfa token success", { userId: user.id, email: email });
-
             // If match, set user object to user object returned by db
-            if (match) { Object.assign(this, user); return true; }
-            else { return false; }
+            if (match) { 
+                log.verbose("user mfa token success", { userId: user.id, email: email });
+                Object.assign(this, user); 
+                db.updateUsersLastLogin(user.id); // Update the last login time for the user
+                return true; 
+            }
+            else { 
+                log.verbose("user mfa token failed", { userId: user.id, email: email });
+                return false; 
+            }
         } catch (error) {
             log.error(error);
             log.error(new Error("Error trying to check login"));

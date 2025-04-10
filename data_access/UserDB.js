@@ -57,6 +57,24 @@ export class UserDB extends DB {
     }
 
     /**
+     * Update the last login time of a user
+     * @param {Integer} userId
+     * @returns {Promise<Boolean>} True if the update was successful
+     */
+    updateUsersLastLogin(userId) {
+        return new Promise((resolve, reject) => {
+            const query = `UPDATE user SET last_login = NOW() WHERE user_id = ?`;
+            this.executeQuery(query, [userId], "updateUsersLastLogin")
+                .then(result => {
+                    if (result.affectedRows > 0) {
+                        log.verbose("user last login updated", { userId: userId });
+                        resolve(true);
+                    } else { resolve(null); }
+                }).catch(error => reject(error));
+        });
+    }
+
+    /**
      * Update an existing user in the database
      * @param {User} user
      * @returns {Promise<Boolean>} True if the update was successful
