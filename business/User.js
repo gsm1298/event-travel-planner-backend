@@ -236,6 +236,7 @@ export class User {
         } catch (error) {
             log.error(error);
             log.error(new Error("Error trying to import users"));
+            throw new Error("Error trying to import users");
         } finally { db.close(); }
     }
 

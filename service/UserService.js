@@ -62,6 +62,18 @@ export class UserService {
                 return res.status(400).json({ error: error.details[0].message });
             }
 
+            // Check if the email already exists
+            const existingUser = await User.GetUserByEmail(req.body.email);
+            if (existingUser) {
+                return res.status(400).json({ error: "Email already in use" });
+            }
+
+            // Check if the organization exists
+            const orgCheck = await User.GetOrgById(req.body.org);
+            if (!orgCheck) {
+                return res.status(400).json({ error: "Organization not found" });
+            }
+
             // Use data from the request body and authenticated user
             const { email, role, org } = req.body;
 
