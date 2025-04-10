@@ -143,8 +143,8 @@ export class UserService {
 
                 // Set new JWT token with updated user info
                 var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
-                res.status(200).json({ message: "User updated successfully" })
-                    .cookie("jwt", token, { httpOnly: false, secure: true, same_site: "none", domain: process.env.domain, maxAge: 1800000 });
+                res.cookie("jwt", token, { httpOnly: false, secure: true, same_site: "none", domain: process.env.domain, maxAge: 1800000 });
+                res.status(200).json({ message: "User updated successfully" });
             }
             else { res.status(500).json({ error: "Unable to update User." }); }
         } catch (err) {
@@ -163,16 +163,16 @@ export class UserService {
                 log.verbose("unauthorized user attempted to get a user", { userId: res.locals.user.id })
                 return res.status(403).json({ error: "Unauthorized access" });
             }
-            
+
             const user = await User.GetUserById(userId);
             if (user) {
                 // Remove some of the fields and create new object to return
-                const returnUser = 
-                    { 
-                        id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email, 
-                        phoneNum: user.phoneNum, gender: user.gender, title: user.title, profilePic: user.profilePic,
-                        role: user.role, org: { id: user.org.id, name: user.org.name }, dob: user.dob
-                    };
+                const returnUser =
+                {
+                    id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email,
+                    phoneNum: user.phoneNum, gender: user.gender, title: user.title, profilePic: user.profilePic,
+                    role: user.role, org: { id: user.org.id, name: user.org.name }, dob: user.dob
+                };
 
                 res.status(200).json(returnUser);
             } else {
