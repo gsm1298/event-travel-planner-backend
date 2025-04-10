@@ -75,12 +75,12 @@ export class UserService {
             // Save user to the database
             await newUser.save();
 
-            const sendEmail = new Email('no-reply@jlabupch.uk', newUser.email, "Account Created", `There has been an accound created for you.\n\n Your temporary password is: ${newUser.pass}`);
+            const sendEmail = new Email('no-reply@jlabupch.uk', newUser.email, "Account Created", `There has been an account created for you.\n\n Your temporary password is: ${newUser.pass}`);
             sendEmail.sendEmail();
 
+            log.verbose("new user created", { userId: newUser.id, email: newUser.email });
             // Respond with the created event ID
             res.status(201).json({ message: "User created successfully" });
-            log.verbose("new user created", { userId: newUser.id, email: newUser.email }); //this may error out due to user not having an ID yet as it is unassigned by the DB
         } catch (err) {
             log.error("Error creating user:", err);
             res.status(500).json({ error: "Unable to create user." });
@@ -130,16 +130,7 @@ export class UserService {
             // Update User in DB
             const updatedUser = await user.save();
             if (updatedUser) {
-                log.verbose("user updated", {
-                    userId: userId,
-                    firstName: firstName,
-                    lastName: lastName,
-                    email: email,
-                    phoneNum: phoneNum,
-                    gender: gender,
-                    title: title,
-                    profilePic: profilePic
-                });
+                log.verbose("user updated", { userId: userId, email: email });
 
                 // Set new JWT token with updated user info
                 var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
