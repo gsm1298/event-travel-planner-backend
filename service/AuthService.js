@@ -116,7 +116,7 @@ export class AuthService {
 
                 //Create a temporary token to send to the user
                 var token = jwt.sign({ response: "2FA Code Sent to email.", email: user.email, userId: user.id }, jwtSecret, { expiresIn: '5m' });
-                return res.status(200).cookie("temp", token, { httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain }).json({ response: "2FA Code Sent to email." });
+                return res.status(200).cookie("temp", token, { httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 300000 }).json({ response: "2FA Code Sent to email." });
 
             }
 
@@ -152,11 +152,7 @@ export class AuthService {
                     return res.status(401).cookie("temp", "", { httpOnly: false, secure: true, sameSite: "none", domain: process.env.domain, maxAge: 1 }).json({ error: "Not authenticated" });
                 }
                 res.locals.user = decoded;
-                
-
             });
-
-
         } catch (err) {
             log.error("Error at MFA Authenticator:  ", err);
             res.status(500).json({ error: "Internal server error" });
@@ -167,8 +163,6 @@ export class AuthService {
             const user = new User();
 
             // Check valid login
-
-
             const valid = await user.CheckMFA(input.email, input.mfaCode);
             if (!valid) {
                 log.verbose("Incorrect 2FA code", { email: input.email, mfaCode: input.mfaCode });
@@ -184,7 +178,6 @@ export class AuthService {
                     return res.status(401).json({ error: "Authentication failed due to email mismatch" });
                 }
                 
-
                 //LOGIN VALID, 2FA SUCCESS
                 if (!user.mfaEnabled) {
                     // If MFA is not enabled, set it to true
@@ -206,7 +199,7 @@ export class AuthService {
 
                 // Set the session
                 var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
-                return res.status(200).cookie("jwt", token, { httpOnly: false, secure: true, same_site: "none", domain: process.env.domain })
+                return res.status(200).cookie("jwt", token, { httpOnly: false, secure: true, same_site: "none", domain: process.env.domain, maxAge: 1800000 })
                     .cookie("temp", "", { maxAge: 1 }).json({ user: userData });
             }
         }
