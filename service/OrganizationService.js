@@ -79,6 +79,12 @@ export class OrganizationService {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
+            // Check if Organization exists
+            const org = await Organization.getOrg(req.params.id);
+            if (!org) {
+                return res.status(404).json({ error: "Organization not found" });
+            }
+
             // joi validation for file data
             const schema = Joi.object({
                 fileName: Joi.string().required(),

@@ -508,7 +508,7 @@ export class EventService {
 
             // Set headers for file download
             res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', `attachment; filename=event_${eventId}_history.csv`);
+            res.setHeader('Content-Disposition', `attachment; filename=event_${event.name}_history.csv`);
 
             // Send CSV file
             res.status(200).send(csv);

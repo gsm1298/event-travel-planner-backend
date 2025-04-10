@@ -111,6 +111,7 @@ export class FlightDB extends DB {
      * Get Flight for User via EventID and UserID
      * @param {Integer} eventID
      * @param {Integer} userID
+     * @returns {Promise<Flight>} Flight OBJ
      */
     getBookedFlight(eventID, userID) {
         return new Promise((resolve, reject) => {

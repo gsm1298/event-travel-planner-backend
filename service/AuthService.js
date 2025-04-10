@@ -5,11 +5,14 @@ import jwt from 'jsonwebtoken';
 import ejs, { render } from 'ejs';
 import { User } from '../business/User.js';
 import { logger } from '../service/LogService.mjs';
-import Joi from 'joi';
+import JoiBase from 'joi';
+import JoiDate from '@joi/date';
 import { Email } from '../business/Email.js';
 import { UserDB } from '../data_access/UserDB.js';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
+
+const Joi = JoiBase.extend(JoiDate); // Extend Joi with date validation
 
 // Init child logger instance
 const log = logger.child({
@@ -195,7 +198,7 @@ export class AuthService {
                     email: user.email
                 };
 
-                log.verbose("user MFA enabled, login sucessful", userData); //log a user with MFA enabled and a successful login
+                log.verbose("user MFA enabled, login sucessful", { userId: user.id, email: user.email }); //log a user with MFA enabled and a successful login
 
                 // Set the session
                 var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
@@ -271,7 +274,7 @@ export class AuthService {
                 gender: Joi.string().valid('m', 'f').required(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
                 profilePic: Joi.string().base64().optional(), 
-                dob: Joi.date().required().max('now').min('1900-01-01'),
+                dob: Joi.date().format('YYYY-MM-DD').required().max('now').min('1900-01-01'),
                 password: Joi.string().min(4).required()
             });
 
@@ -283,10 +286,10 @@ export class AuthService {
 
             const { firstName, lastName, email, phoneNum, gender, title, profilePic, dob, password } = req.body;
 
-            // Check if email DOES NOT already exist. The email should already be in the system if invited to an event.
+            // Check if email DOES NOT already exist. The email should already be in the system if invited to an event or created by admin.
             const existingUser = await User.GetUserByEmail(email);
             if (!existingUser) {
-                return res.status(400).json({ error: "Email does not exist. User has not been invited to an event." });
+                return res.status(400).json({ error: "Email does not exist. User has not been invited to an event or was not created by an admin." });
             }
 
             // Create the user
@@ -299,8 +302,8 @@ export class AuthService {
                 gender,
                 title,
                 profilePic,
-                existingUser.org,  // org will be set later
-                'Attendee',  // default role for registered users
+                existingUser.org,  // org was set at account creation
+                existingUser.role, // role was set at account creation
                 await User.hashPass(password),  // hashedPass
                 null,  // mfaSecret
                 existingUser.mfaEnabled,  // mfaEnabled
@@ -309,11 +312,16 @@ export class AuthService {
             
 
             // Save user to the database
-            console.log(newUser);
-            await newUser.save();
+            //console.log(newUser);
+            const success = await newUser.save();
 
+            if (!success) {
+                log.error("was unable to register the new user", { userId: existingUser.id, email: newUser.email });
+                return res.status(500).json({ error: "Unable to register user." });
+            }
+
+            log.verbose("new user registered", { userId: existingUser.id, email: newUser.email });
             res.status(201).json({ message: "User registered successfully" });
-            log.verbose("new user registered", { email: newUser.email });
         } catch (err) {
             log.error("Error registering user:", err);
             res.status(500).json({ error: "Unable to register user." });

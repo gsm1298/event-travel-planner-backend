@@ -57,6 +57,24 @@ export class UserDB extends DB {
     }
 
     /**
+     * Update the last login time of a user
+     * @param {Integer} userId
+     * @returns {Promise<Boolean>} True if the update was successful
+     */
+    updateUsersLastLogin(userId) {
+        return new Promise((resolve, reject) => {
+            const query = `UPDATE user SET last_login = NOW() WHERE user_id = ?`;
+            this.executeQuery(query, [userId], "updateUsersLastLogin")
+                .then(result => {
+                    if (result.affectedRows > 0) {
+                        log.verbose("user last login updated", { userId: userId });
+                        resolve(true);
+                    } else { resolve(null); }
+                }).catch(error => reject(error));
+        });
+    }
+
+    /**
      * Update an existing user in the database
      * @param {User} user
      * @returns {Promise<Boolean>} True if the update was successful
@@ -81,7 +99,7 @@ export class UserDB extends DB {
     /**
      * Gets a user based on a given email.
      * @param {String} email
-     * @returns {User} user object
+     * @returns {Promise<User>} user object
      */
     GetUserByEmail(email) {
         return new Promise((resolve, reject) => {
@@ -105,7 +123,7 @@ export class UserDB extends DB {
     /**
      * Gets a user based on a given id.
      * @param {Integer} id
-     * @returns {User} user object
+     * @returns {Promise<User>} user object
      */
     GetUserById(id) {
         return new Promise((resolve, reject) => {
@@ -128,7 +146,7 @@ export class UserDB extends DB {
 
     /**
      * Gets all users.
-     * @returns {User[]} Array of user object
+     * @returns {Promise<User[]>} Array of user object
      */
     GetAllUsers() {
         return new Promise((resolve, reject) => {
@@ -150,7 +168,7 @@ export class UserDB extends DB {
     /**
     * Gets all users in an org.
     * @param {Integer} orgId
-    * @returns {User[]} Array of user object
+    * @returns {Promise<User[]>} Array of user object
     */
     GetAllUsersFromOrg(orgId) {
         return new Promise((resolve, reject) => {
@@ -172,7 +190,7 @@ export class UserDB extends DB {
     /**
     * Gets all attendees of an event.
     * @param {Integer} eventId
-    * @returns {User[]} Array of user object
+    * @returns {Promise<User[]>} Array of user object
     */
     GetAllAttendeesInEvent(eventId) {
         return new Promise((resolve, reject) => {
@@ -198,7 +216,7 @@ export class UserDB extends DB {
      * Get Attendee
      * @param {Integer} eventId
      * @param {Integer} userId
-     * @returns {Integer} Attendee ID
+     * @returns {Promise<Integer>} Attendee ID
      */
     GetAttendee(eventId, userId) {
         return new Promise((resolve, reject) => {
@@ -212,7 +230,7 @@ export class UserDB extends DB {
     /**
      * Get User via Attendee
      * @param {Integer} attendeeId
-     * @returns {User} user
+     * @returns {Promise<User>} user
      */
     GetUserByAttendee(attendeeId) {
         return new Promise((resolve, reject) => {

@@ -3,6 +3,7 @@ import { UserDB } from '../data_access/UserDB.js';
 import bcrypt from 'bcrypt';
 import speakeasy from 'speakeasy';
 import { logger } from '../service/LogService.mjs';
+import { Email } from '../business/Email.js'; // Import the EmailService
 
 // Init child logger instance
 const log = logger.child({
@@ -57,7 +58,7 @@ export class User {
     /**
      * Generates a MFA secret for the user
      * This is used to generate a TOTP code for the user to use for MFA
-     * @returns {secret}
+     * @returns {Promise<secret>}
      * 
      */
     async GenerateSecret() {
@@ -71,7 +72,7 @@ export class User {
 
     /**
     * Generates a MFA token for the user
-    * @returns {String} MFA token   
+    * @returns {Promise<String>} MFA token   
     */
     async GenerateToken() {
         const totpCode = speakeasy.totp({
@@ -91,7 +92,7 @@ export class User {
      * If it is, sets the user object variables to be that of the user logging in.
      * @param {String} email
      * @param {String} password
-     * @returns {Boolean} login success
+     * @returns {Promise<Boolean>} login success
      */
     async CheckLogin(email, password) {
         const db = new UserDB();
@@ -120,7 +121,7 @@ export class User {
      * If it is, sets the user object variables to be that of the user logging in.
      * @param {String} email
      * @param {String} mfaCode
-     * @returns {Boolean} login success
+     * @returns {Promise<Boolean>} login success
      */
     async CheckMFA(email, mfaCode) {
         const db = new UserDB();
@@ -130,8 +131,11 @@ export class User {
             // Check if user was found
             if (!user) { return false; }
 
-            if (!user.mfaSecret) { return false; } // No MFA secret set for user
-            log.verbose("user exists upon check, mfa does not", { userId: user.id, email: email });
+            if (!user.mfaSecret) { 
+                log.verbose("user exists upon check, mfa does not", { userId: user.id, email: email });
+                return false; 
+            } // No MFA secret set for user
+            
             // Check if 2FA code is correct
             //const match = await bcrypt.compare(mfaCode, user.hashedMfaCode)
 
@@ -144,11 +148,17 @@ export class User {
                 window: 1, // Allow a +/- 1 step (so 180s total: 60s before, 60s current, 60s after)
             });
 
-            log.verbose("user mfa token success", { userId: user.id, email: email });
-
             // If match, set user object to user object returned by db
-            if (match) { Object.assign(this, user); return true; }
-            else { return false; }
+            if (match) { 
+                log.verbose("user mfa token success", { userId: user.id, email: email });
+                Object.assign(this, user); 
+                db.updateUsersLastLogin(user.id); // Update the last login time for the user
+                return true; 
+            }
+            else { 
+                log.verbose("user mfa token failed", { userId: user.id, email: email });
+                return false; 
+            }
         } catch (error) {
             log.error(error);
             log.error(new Error("Error trying to check login"));
@@ -158,10 +168,10 @@ export class User {
     /**
      * Hashes a password
      * @param {String} password
-     * @returns {String} hashed password
+     * @returns {Promise<String>} hashed password
      */
     static async hashPass(password) {
-        return bcrypt.hash(password, 10);
+        return await bcrypt.hash(password, 10);
     }
 
     /**
@@ -197,7 +207,7 @@ export class User {
     static async importUsers(users) {
         const db = new UserDB();
         try {
-            users.forEach(async (user) => {
+            for (const user of users) {
                 // Check if user already exists
                 const existingUser = await db.GetUserByEmail(user.email);
                 if (existingUser) {
@@ -205,35 +215,35 @@ export class User {
                 }
                 else { // User does not exist, create new user
                     log.verbose("user does not exist, creating new user (user import)", { email: user.email });
-
+            
                     // Create temp password
                     var tempPass = await User.hashPass(user.email + Date.now() + Math.random() + user.org.id);
                     tempPass = tempPass.substring(0, 12);
                     user.pass = tempPass;
                     user.hashedPass = await User.hashPass(tempPass);
-
+            
                     const id = await db.createUser(user);
-
+            
                     // Check if user was created successfully
                     if (id > 0) {
-                        log.verbose("user succefully created (user import)", { email: user.email });
                         const email = new Email('no-reply@jlabupch.uk', user.email, "Account Created", `An account has been created for you.\n\nYour temporary password is: ${user.pass}`);
                         email.sendEmail();
                     } else {
                         log.error("user could not be created (user import)", { email: user.email });
                     }
                 }
-            });
+            }
         } catch (error) {
             log.error(error);
             log.error(new Error("Error trying to import users"));
+            throw new Error("Error trying to import users");
         } finally { db.close(); }
     }
 
     /**
      * Gets a user by their id
      * @param {Intager} id
-     * @returns {User} User object
+     * @returns {Promise<User>} User object
      */
     static async GetUserById(id) {
         const db = new UserDB();
@@ -250,7 +260,7 @@ export class User {
         /**
      * Gets a user by their email
      * @param {String} email
-     * @returns {User} User object
+     * @returns {Promise<User>} User object
      */
         static async GetUserByEmail(email) {
             const db = new UserDB();
@@ -266,7 +276,7 @@ export class User {
 
     /**
      * Gets all users
-     * @returns {User[]} Array of User objects
+     * @returns {Promise<User[]>} Array of User objects
      */
     static async GetAllUsers() {
         const db = new UserDB();
@@ -283,7 +293,7 @@ export class User {
     /**
      * Gets all users in an org
      * @param {Intager} orgId
-     * @returns {User[]} Array of User objects
+     * @returns {Promise<User[]>} Array of User objects
      */
     static async GetAllUsersFromOrg(orgId) {
         const db = new UserDB();
@@ -300,7 +310,7 @@ export class User {
     /**
      * Gets all users in an event
      * @param {Intager} eventId
-     * @returns {User[]} Array of User objects
+     * @returns {Promise<User[]>} Array of User objects
      */
     static async GetAllAttendeesInEvent(eventId) {
         const db = new UserDB();
@@ -317,7 +327,7 @@ export class User {
     /**
      * Get Attendee ID
      * @param {Integer} eventId 
-     * @param {Integer} userId 
+     * @param {Promise<Integer>} userId 
      */
     static async GetAttendee(eventId, userId) {
         const db = new UserDB();
@@ -335,7 +345,7 @@ export class User {
     /**
      * Get flight user
      * @param {Integer} attendeeId
-     * @returns {User} user
+     * @returns {Promise<User>} user
      */
     static async GetUserByAttendee(attendeeId) {
         const db = new UserDB();
