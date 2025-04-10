@@ -165,7 +165,7 @@ export class EventService {
             }
 
             // Check if a Finance Manager is assigned to the event
-            if (!event.financeMan) {
+            if (!event.financeMan?.id) {
                 log.verbose("event does not have a finance manager assigned", { eventId: event.id });
                 return res.status(400).json({ message: "Event does not have a finance manager assigned" });
             }
@@ -230,7 +230,7 @@ export class EventService {
             }
 
             // Check if a Finance Manager is assigned to the event
-            if (!event.financeMan) {
+            if (!event.financeMan?.id) {
                 log.verbose("event does not have a finance manager assigned", { eventId: event.id });
                 return res.status(400).json({ message: "Event does not have a finance manager assigned" });
             }
