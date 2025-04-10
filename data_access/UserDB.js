@@ -36,16 +36,28 @@ export class UserDB extends DB {
      */
     createUser(user) {
         return new Promise((resolve, reject) => {
-            const query = `
-                INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, date_of_birth, profile_picture, org_id, role_id)
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT role.role_id FROM role WHERE role.name = ? LIMIT 1))
-            `;
-            const params = user.org?.id
-                ? user.role
-                    ? [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, user.role]
-                    : [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, 1]
-                : (() => { reject('Organization ID not set'); })();
+            var query;
+            var params;
 
+            // Check if orgId is set in user obejct
+            if (user.org?.id) {
+                // Check if role is set in userObject
+                if (user.role) {
+                    query = `
+                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, date_of_birth, profile_picture, org_id, role_id)
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, (SELECT role.role_id FROM role WHERE role.name = ? LIMIT 1))
+                        `;
+                    params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, user.role];
+                }
+                else {
+                    query = `
+                            INSERT INTO user (first_name, last_name, email, hashed_password, title, phone_num, gender, date_of_birth, profile_picture, org_id, role_id)
+                            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `;
+                    params = [user.firstName, user.lastName, user.email, user.hashedPass, user.title, user.phoneNum, user.gender, user.dob, user.profilePic, user.org.id, 1]; // Default to 1 (Attendee)
+                }
+            } else { reject('Organization ID not set'); }
+            
             this.executeQuery(query, params, "createUser")
                 .then(result => {
                     if (result.insertId > 0) {
@@ -182,7 +194,7 @@ export class UserDB extends DB {
                             new Organization(row.org_id, row.org_name),
                             row.role_name, row.hashed_password, JSON.parse(row.mfa_secret), Boolean(row.mfa_enabled?.readUIntLE(0, 1)), row.date_of_birth
                         )));
-                    } else { resolve(null);}
+                    } else { resolve(null); }
                 }).catch(error => reject(error));
         });
     }
