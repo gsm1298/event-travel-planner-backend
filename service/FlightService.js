@@ -237,10 +237,10 @@ export class FlightService {
         // Check if user already has a flight on hold
         const existingFlight = await Flight.getBookedFlight(input.eventID, user.id);
 
-        if (existingFlight.status == 1) {
+        if (existingFlight?.status.id == 1) {
             log.verbose("user already has a flight on hold", { email: user.email, eventID: input.eventID });
             return res.status(400).json({ error: "Flight already on hold" });
-        } else if (existingFlight.status == 3) {
+        } else if (existingFlight?.status.id == 3) {
             log.verbose("user already has a flight booked", { email: user.email, eventID: input.eventID });
             return res.status(400).json({ error: "Flight already booked" });
         }
@@ -303,9 +303,9 @@ export class FlightService {
 
             // Insert new hold into DB
             var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
-            overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, 1, 
+            overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, { id: 1 }, 
             null, null, null, null, null, data.id, JSON.stringify(dbItinerary));
-            newHold.save();
+            const newHoldID = await newHold.save();
 
             const templatePath = path.join(process.cwd(), 'email_templates', 'flightHoldEmail.ejs');
             // Prepare data to pass into template
@@ -356,8 +356,35 @@ export class FlightService {
             log.verbose("user flight hold confirmed", { email: user.email, confirmationID: confirmation.data.id });
             res.status(200).send(JSON.stringify(data));
 
+            // Now that flight is held, check auto approval and book if the price is in the threshold.
+            // Check if the event has auto approval
+            const event = await Event.findById(input.eventID);
+            const flight = await Flight.getFlightByID(newHoldID);
+
+
+            if (event.autoApprove) {
+                // Check if the flight price is within the auto approval threshold
+                const autoApprovalThreshold = event.autoApproveThreshold;
+                const flightPrice = data.totalPrice;
+                if (flightPrice <= autoApprovalThreshold) {
+                    // Auto approve the flight
+                    flight.status.id = 3; 
+                    flight.confirmation_code = "Confirmed";
+                    flight.approved_by = event.financeMan.id; 
+                    flight.save();
+
+                    // Update the event history
+                    await event.updateEventHistory(event.financeMan.id, flight.flight_id);
+
+                    // Log and send email to user
+                    log.verbose("user flight booking confirmed via auto approval", { email: user.email, confirmationID: confirmation.data.id });
+                    // Send email to user
+                    var emailAA = new Email('no-reply@jlabupch.uk', user.email, "Flight Approved", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Approved.`);
+                    await emailAA.sendEmail();
+                }
+            }
         } catch (error) {
-            log.error("Error at Booking: ", error);
+            log.error("Error at Flight Hold (Auto Approval): ", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
@@ -410,36 +437,47 @@ export class FlightService {
             //     }
             // })
 
-            const oldFilghtStatus = flight.status;
+            const oldFilghtStatus = flight.status.id;
 
             // Update DB record
             if(input.selection) {
-                flight.status = 3;
+                flight.status.id = 3;
                 flight.confirmation_code = "Confirmed";
             } else {
-                flight.status = 2
+                flight.status.id = 2
                 flight.confirmation_code = "Denied";
             }
             flight.approved_by = res.locals.user.id;
             flight.save();
 
+            // Get Flight Attendee Info and Event Info
+            const client = await User.GetUserByAttendee(flight.attendee_id);
+
             // Check if flight was set to approved from pending
-            if (flight.status == 3 && oldFilghtStatus == 1) {
+            if (flight.status.id == 3 && oldFilghtStatus == 1) {
                 // Updated the event history if flight was approved
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             }
 
-            
+            // Send email to user based on flight status
+            // 2 = Denied, 3 = Approved
+            switch (flight.status.id) {
+                case 2:
+                    // Send email to user
+                    var email = new Email('no-reply@jlabupch.uk', client.email, "Flight Denied", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Denied.`);
+                    await email.sendEmail();
 
-             // Get Flight Attendee Info
-             var client = await User.GetUserByAttendee(flight.attendee_id);
+                    log.verbose("flight denied", { flightID: flight.flight_id });
+                    return res.status(200).json({ success: 'Flight Denied' });
 
-            // Send email to user
-            const email = new Email('no-reply@jlabupch.uk', client.email, "Flight Booked", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} has been booked.`);
-            email.sendEmail();
-
-            res.status(200).json({ success: 'Flight Booked' });
-            log.verbose("flight booked", { flightID: flight.flight_id });
+                case 3:
+                    // Send email to user
+                    var email = new Email('no-reply@jlabupch.uk', client.email, "Flight Approved", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Approved.`);
+                    await email.sendEmail();
+    
+                    log.verbose("flight approved", { flightID: flight.flight_id });
+                    return res.status(200).json({ success: 'Flight Approved' });
+            }
 
         } catch (error) {
             log.error("Error at Booking: ", error);
