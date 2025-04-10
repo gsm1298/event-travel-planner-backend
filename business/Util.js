@@ -18,7 +18,8 @@ export class Util {
                 departure_time: (s.departing_at).slice(11,16),
                 arrival_time: (s.arriving_at).slice(11,16),
                 flight_num: s.operating_carrier_flight_number,
-                carrier: s.operating_carrier.name
+                carrier: s.operating_carrier.name,
+                class: slice.fare_brand_name
             })
         })
 

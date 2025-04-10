@@ -302,6 +302,13 @@ export class EventService {
      */
     async getEvents(req, res) {
         try {
+            // Check if user is an event planner, finance manager, or attendee
+            if (!AuthService.authorizer(req, res, ["Event Planner", "Finance Manager", "Attendee"])) {
+                log.verbose("unauthorized user attempted to get events", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+            
+            // Get events for the user
             const events = await Event.getEvents(res.locals.user.id, res.locals.user.role);
             res.status(200).json(events);
         } catch (err) {
@@ -404,7 +411,6 @@ export class EventService {
                 email.sendEmail();
 
             }
-
 
             if (success) {
                 log.verbose("Event updated successfully", { userId: user.id, event: event, eventData: eventData });
