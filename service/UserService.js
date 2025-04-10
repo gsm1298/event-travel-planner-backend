@@ -130,7 +130,11 @@ export class UserService {
                     title: title,
                     profilePic: profilePic
                 });
-                res.status(200).json({ message: "User updated successfully" });
+
+                // Set new JWT token with updated user info
+                var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
+                res.status(200).json({ message: "User updated successfully" })
+                    .cookie("jwt", token, { httpOnly: false, secure: true, same_site: "none", domain: process.env.domain, maxAge: 1800000 });
             }
             else { res.status(500).json({ error: "Unable to update User." }); }
         } catch (err) {
