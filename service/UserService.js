@@ -65,8 +65,8 @@ export class UserService {
             const { email, role, org } = req.body;
 
             // Create the user
-            const newUser = new User(null, null, null, email, null, null, null, null, org, role, null, null, null, null);
-            var tempPass = await User.hashPass(attendee.email + Date.now() + Math.random() + userOrg.id);
+            const newUser = new User(null, null, null, email, null, null, null, null, {id: org}, role, null, null, null, null);
+            var tempPass = await User.hashPass(newUser.email + Date.now() + Math.random() + newUser.org.id);
             tempPass = tempPass.substring(0, 12);
             newUser.pass = tempPass;
             newUser.hashedPass = await User.hashPass(tempPass);
