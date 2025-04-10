@@ -373,6 +373,9 @@ export class FlightService {
                     flight.approved_by = event.financeMan.id; 
                     flight.save();
 
+                    // Update the event history
+                    await event.updateEventHistory(event.financeMan.id, flight.flight_id);
+
                     // Log and send email to user
                     log.verbose("user flight booking confirmed via auto approval", { email: user.email, confirmationID: confirmation.data.id });
                     // Send email to user
@@ -434,7 +437,7 @@ export class FlightService {
             //     }
             // })
 
-            const oldFilghtStatus = flight.status;
+            const oldFilghtStatus = flight.status.id;
 
             // Update DB record
             if(input.selection) {
@@ -451,7 +454,7 @@ export class FlightService {
             const client = await User.GetUserByAttendee(flight.attendee_id);
 
             // Check if flight was set to approved from pending
-            if (flight.status.id == 3 && oldFilghtStatus.id == 1) {
+            if (flight.status.id == 3 && oldFilghtStatus == 1) {
                 // Updated the event history if flight was approved
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             }
