@@ -280,7 +280,7 @@ export class EventDB extends DB {
             try {
                 const query = `
                     UPDATE event e
-                    JOIN (
+                    LEFT JOIN (
                         SELECT a.event_id, COALESCE(SUM(f.price), 0) AS total_flight_cost
                         FROM attendee a
                         LEFT JOIN flight f ON a.attendee_id = f.attendee_id AND f.status = 3
