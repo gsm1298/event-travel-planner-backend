@@ -159,7 +159,7 @@ export class EventService {
             }
 
             // Check if event has started or is over
-            if (event.CheckIfEventHasStarted() && event.CheckIfEventIsOver()) {
+            if (event.CheckIfEventHasStarted() || event.CheckIfEventIsOver()) {
                 log.verbose("event has already started or is already over", { eventId: event.id });
                 return res.status(400).json({ message: "Event has already started or is already over" });
             }
@@ -224,7 +224,7 @@ export class EventService {
             }
 
             // Check if event has started or is over
-            if (event.CheckIfEventHasStarted() && event.CheckIfEventIsOver()) {
+            if (event.CheckIfEventHasStarted() || event.CheckIfEventIsOver()) {
                 log.verbose("event has already started or is already over", { eventId: event.id });
                 return res.status(400).json({ message: "Event has already started or is already over" });
             }
@@ -377,7 +377,7 @@ export class EventService {
             }
 
             // Check if event has started or is over
-            if (event.CheckIfEventHasStarted() && event.CheckIfEventIsOver()) {
+            if (event.CheckIfEventHasStarted() || event.CheckIfEventIsOver()) {
                 log.verbose("event has already started or is already over", { eventId: event.id });
                 return res.status(400).json({ message: "Event has already started or is already over" });
             }
