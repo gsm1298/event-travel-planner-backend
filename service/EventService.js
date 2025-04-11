@@ -40,16 +40,15 @@ export class EventService {
      */
     async createEvent(req, res) {
         try {
-            // Check if user is an event planner
-            if (!AuthService.authorizer(req, res, ["Event Planner"])) {
-                log.verbose("unauthorized user attempted to create an event", { userId: res.locals.user.id })
-                return res.status(403).json({ error: "Unauthorized access" });
-            }
+            // // Check if user is an event planner
+            // if (!AuthService.authorizer(req, res, ["Event Planner"])) {
+            //     log.verbose("unauthorized user attempted to create an event", { userId: res.locals.user.id })
+            //     return res.status(403).json({ error: "Unauthorized access" });
+            // }
 
             // Joi schema for validation
             const schema = Joi.object({
                 name: Joi.string().required(),
-                destinationCode: Joi.string().required(),
                 startDate: Joi.date().required(),
                 endDate: Joi.date().required(),
                 financeMan: Joi.object({ id: Joi.number().integer() }).optional(),
@@ -58,7 +57,9 @@ export class EventService {
                 maxBudget: Joi.number().positive().required(),
                 autoApprove: Joi.boolean().optional(),
                 autoApproveThreshold: Joi.number().positive().optional(),
-                attendees: Joi.array().items(Joi.object({id: Joi.number().integer().required()})).optional()
+                attendees: Joi.array().items(Joi.object({id: Joi.number().integer().required()})).optional(),
+                lat: Joi.number().unsafe().required(),
+                long: Joi.number().unsafe().required(),
             });
 
             // Validate request body
@@ -69,16 +70,31 @@ export class EventService {
             }
 
             // Use data from the request body and authenticated user
-            const { name, destinationCode, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget, autoApprove, autoApproveThreshold } = req.body;
+            const { name, startDate, endDate, financeMan, inviteLink, description, pictureLink, maxBudget, autoApprove, autoApproveThreshold, lat, long } = req.body;
             const user = res.locals.user;  // user from authenticator middleware
             const userOrg = res.locals.user.org;  // user organization from authenticator middleware
             const currentBudget = maxBudget;
+            var destinationAirportCode;
+
+            // Call to Amadeus to get IATA code of the airport closest to the coordinates provided
+            // Accepts in a longitude and latitude value provided by Google Places API from Front
+            try {
+                await amadeus.referenceData.locations.airports.get({
+                    latitude: lat, longitude: long
+                }).then(resp => {
+                    destinationAirportCode = resp.data[0].iataCode;
+                })
+            } catch (err) {
+                log.error("Error Getting Airport Code from Amadeus", err);
+                return res.status(500).json({ error: "Internal server error" });
+            }
+
 
             // Create the event
             const newEvent = new Event(
                 null,  // ID will be auto-generated
                 name, 
-                destinationCode,
+                destinationAirportCode,
                 user,  // createdBy will be the current user
                 financeMan,
                 startDate,
@@ -104,7 +120,8 @@ export class EventService {
                 description: newEvent.description,
                 pictureLink: newEvent.inviteLink,
                 maxBudget: newEvent.maxBudget,
-                currentBudget: newEvent.currentBudget
+                currentBudget: newEvent.currentBudget,
+                destinationCode: newEvent.destinationCode
             })
 
             // Save event to the database
