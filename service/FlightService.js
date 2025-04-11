@@ -510,7 +510,7 @@ export class FlightService {
         try {
             const eventID = req.params.id;
             const flight = await Flight.getBookedFlight(eventID, res.locals.user.id);
-            console.log(flight);
+            //console.log(flight);
             if(flight) {
                 res.status(200).json(flight);
             } else {
