@@ -270,6 +270,30 @@ export class EventDB extends DB {
         });
     }
 
+    getAttendeesForEvent(eventId) {
+        return new Promise((resolve, reject) => {
+            try {
+                const query = `
+                    SELECT user.user_id, user.first_name, user.last_name, user.email
+                    FROM attendee
+                        LEFT JOIN user ON attendee.user_id = user.user_id
+                    WHERE attendee.event_id = ?
+                `;
+
+                this.executeQuery(query, [eventId], "getAttendeesForEvent")
+                    .then(rows => {
+                        if (rows.length > 0) {
+                            resolve(rows.map(row => new User(row.user_id, row.first_name, row.last_name, row.email)));
+                        } else { resolve(null); }
+                    })
+                    .catch(err => { reject(err); });
+            } catch (error) {
+                log.error("database try/catch error from getAttendeesForEvent", error);
+                reject(error);
+            }
+        });
+    }
+
     /**
      * Update an existing event in the database
      * @param {Event} event

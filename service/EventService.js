@@ -28,6 +28,7 @@ export class EventService {
         this.app.put('/events/:id', this.updateEvent);
         this.app.delete('/events/:id', this.deleteEvent);
         this.app.get('/events/history/:id', this.exportEventHistory);
+        this.app.get('/events/:id/attendees', this.getEventAttendees);
     }
 
     // ALL CRUD OPERATIONS BELOW
@@ -353,6 +354,40 @@ export class EventService {
         } catch (err) {
             log.error("Error retrieving all events:", err);
             res.status(500).json({ error: "Unable to fetch events." });
+        }
+    }
+
+
+
+    /**
+     * Get event attendees by event ID
+     * @param {express.Request} req
+     * @param {express.Response} res
+     * @returns {Promise<void>}
+     */
+    async getEventAttendees(req, res) {
+
+        try {
+            const eventId = req.params.id;
+
+            // Check if user is an event planner or finance manager
+            if (!AuthService.authorizer(req, res, ["Event Planner", "Finance Manager"])) {
+                log.verbose("unauthorized user attempted to get event attendees", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Get the event by ID
+            const event = await Event.findById(eventId);
+            if (!event) {
+                return res.status(404).json({ message: "Event not found" });
+            }
+
+            // Get attendees for the event
+            const attendees = await event.getAttendees();
+            res.status(200).json(attendees);
+        } catch (err) {
+            log.error("Error retrieving event attendees:", err);
+            res.status(500).json({ error: "Unable to fetch event attendees." });
         }
     }
 

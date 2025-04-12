@@ -160,6 +160,21 @@ export class Event {
     }
 
     /**
+     * Get all attendees for the event
+     * @returns {Promise<User[]>} Array of User objects
+     * @throws {Error}
+     */
+    async getAttendees() {
+        const db = new EventDB();
+        try {
+            return db.getAttendeesForEvent(this.id);
+        } catch(error) {
+            log.error(error);
+            log.error(Error("Error trying to get attendees for event"));
+        } finally { db.close(); }
+    }
+
+    /**
      * Find an event by ID
      * @param {Integer} eventId
      * @returns {Promise<Event|null>}
