@@ -274,7 +274,7 @@ export class EventDB extends DB {
         return new Promise((resolve, reject) => {
             try {
                 const query = `
-                    SELECT user.user_id, user.first_name, user.last_name, user.email
+                    SELECT user.user_id, user.first_name, user.last_name, user.email, user.profile_picture
                     FROM attendee
                         LEFT JOIN user ON attendee.user_id = user.user_id
                     WHERE attendee.event_id = ?
@@ -283,7 +283,7 @@ export class EventDB extends DB {
                 this.executeQuery(query, [eventId], "getAttendeesForEvent")
                     .then(rows => {
                         if (rows.length > 0) {
-                            resolve(rows.map(row => new User(row.user_id, row.first_name, row.last_name, row.email)));
+                            resolve(rows.map(row => new User(row.user_id, row.first_name, row.last_name, row.email, null, null, null, null, row.profile_picture)));
                         } else { resolve(null); }
                     })
                     .catch(err => { reject(err); });
