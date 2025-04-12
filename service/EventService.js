@@ -5,12 +5,18 @@ import { AuthService } from './AuthService.js'; // Assuming you already have the
 import Joi from 'joi';
 import { logger } from '../service/LogService.mjs'; // logging
 import { Email } from '../business/Email.js';
+import Amadeus from 'amadeus';
+import dotenv from 'dotenv';
 
 
 // Init child logger instance
 const log = logger.child({
     service : "eventService", //specify module where logs are from
 });
+
+//Initialize env config and load in env for appropriate modules
+dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
+
 export class EventService {
     /**
      * @constructor
@@ -41,11 +47,17 @@ export class EventService {
      */
     async createEvent(req, res) {
         try {
-            // // Check if user is an event planner
-            // if (!AuthService.authorizer(req, res, ["Event Planner"])) {
-            //     log.verbose("unauthorized user attempted to create an event", { userId: res.locals.user.id })
-            //     return res.status(403).json({ error: "Unauthorized access" });
-            // }
+
+            const amadeus = new Amadeus({
+                clientId: `${process.env.amadeusToken}`,
+                clientSecret: `${process.env.amadeusSecret}`
+            })
+
+            // Check if user is an event planner
+            if (!AuthService.authorizer(req, res, ["Event Planner"])) {
+                log.verbose("unauthorized user attempted to create an event", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
 
             // Joi schema for validation
             const schema = Joi.object({
