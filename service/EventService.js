@@ -7,15 +7,21 @@ import { logger } from '../service/LogService.mjs'; // logging
 import { Email } from '../business/Email.js';
 import Amadeus from 'amadeus';
 import dotenv from 'dotenv';
-
+import path from 'path';
 
 // Init child logger instance
 const log = logger.child({
     service : "eventService", //specify module where logs are from
 });
 
-//Initialize env config and load in env for appropriate modules
-dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
+// Initialize env config and load in env for appropriate modules
+dotenv.config({ path: `${path.dirname('.')}/.env.backend` });
+dotenv.config({ path: `${path.dirname('.')}/../.env` });
+
+const amadeus = new Amadeus({
+    clientId: `${process.env.amadeusToken}`,
+    clientSecret: `${process.env.amadeusSecret}`
+});
 
 export class EventService {
     /**
@@ -47,11 +53,6 @@ export class EventService {
      */
     async createEvent(req, res) {
         try {
-
-            const amadeus = new Amadeus({
-                clientId: `${process.env.amadeusToken}`,
-                clientSecret: `${process.env.amadeusSecret}`
-            })
 
             // Check if user is an event planner
             if (!AuthService.authorizer(req, res, ["Event Planner"])) {
