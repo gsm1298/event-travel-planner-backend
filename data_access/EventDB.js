@@ -283,7 +283,7 @@ export class EventDB extends DB {
                 this.executeQuery(query, [eventId], "getAttendeesForEvent")
                     .then(rows => {
                         if (rows.length > 0) {
-                            resolve(rows.map(row => new User(row.user_id, row.first_name, row.last_name, row.email, null, null, null, null, row.profile_picture)));
+                            resolve(rows.map(row => new User(row.user_id, row.first_name, row.last_name, row.email, null, null, null, row.profile_picture)));
                         } else { resolve(null); }
                     })
                     .catch(err => { reject(err); });
