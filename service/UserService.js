@@ -116,7 +116,7 @@ export class UserService {
                 firstName: Joi.string().optional(),
                 lastName: Joi.string().optional(),
                 email: Joi.string().email().optional(),
-                phoneNum: Joi.string().optional(),
+                phoneNum: Joi.string().min(10).max(10).optional(),
                 gender: Joi.string().valid('m', 'f').optional(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
                 dob: Joi.date().format("YYYY-MM-DD").max('now').min('1900-01-01').optional(),

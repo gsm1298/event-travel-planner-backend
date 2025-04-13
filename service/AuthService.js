@@ -270,7 +270,7 @@ export class AuthService {
                 firstName: Joi.string().required().min(2).max(50),
                 lastName: Joi.string().required().min(2).max(50),
                 email: Joi.string().email().required().max(100),
-                phoneNum: Joi.string().required(),
+                phoneNum: Joi.string().min(10).max(10).required(),
                 gender: Joi.string().valid('m', 'f').required(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').required(),
                 profilePic: Joi.string().base64().optional(), 
