@@ -322,7 +322,7 @@ export class EventDB extends DB {
                         e.description = ?,
                         e.picture_link = ?,
                         e.max_budget = ?,
-                        e.current_budget = ? - COALESCE(costs.total_flight_cost, 0),,
+                        e.current_budget = ? - COALESCE(costs.total_flight_cost, 0),
                         e.autoapprove = ?,
                         e.autoapprove_threshold = ?
                     WHERE e.event_id = ?;
