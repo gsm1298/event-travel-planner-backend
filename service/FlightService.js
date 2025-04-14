@@ -360,6 +360,30 @@ export class FlightService {
             const flight = await Flight.getFlightByID(newHoldID);
 
 
+            // Create email template for finance manager approval email
+            const approvalTemplate = path.join(process.cwd(), 'email_templates', 'flightAwaitingApproval.ejs');
+            // Prepare data to pass into template
+            const approvalTemplateData = {
+                eventName: event.name
+            };
+
+            let approvalHtmlContent;
+            try {
+                approvalHtmlContent = await ejs.renderFile(approvalTemplate, approvalTemplateData);
+            } catch (renderErr) {
+              log.error("Error rendering email template:", renderErr);
+            }
+
+            // Use generated htmlContent to send email
+            const approvalEmail = new Email(
+              'no-reply@jlabupch.uk',
+              event.financeMan.email,
+              "Flight Awaiting Approval",
+              null,
+              approvalHtmlContent
+            );
+
+
             if (event.autoApprove) {
                 // Check if the flight price is within the auto approval threshold
                 const autoApprovalThreshold = event.autoApproveThreshold;
@@ -381,13 +405,11 @@ export class FlightService {
                     await emailAA.sendEmail();
                 } else {
                     // Send email to finance manager for manual approval
-                    const sendEmail = new Email('no-reply@jlabupch.uk', event.financeMan.email, "Flight Awaiting Approval", `There is a flight awaiting Approvale in the event ${event.name}. Please check the event page for more details.`);
-                    sendEmail.sendEmail();
+                    approvalEmail.sendEmail();
                 }
             } else { 
                 // Send email to finance manager for manual approval
-                const sendEmail = new Email('no-reply@jlabupch.uk', event.financeMan.email, "Flight Awaiting Approval", `There is a flight awaiting Approvale in the event ${event.name}. Please check the event page for more details.`);
-                sendEmail.sendEmail();
+                approvalEmail.sendEmail();
             }
         } catch (error) {
             log.error("Error at Flight Hold (Auto Approval): ", error);
