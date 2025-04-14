@@ -379,7 +379,15 @@ export class FlightService {
                     // Send email to user
                     var emailAA = new Email('no-reply@jlabupch.uk', user.email, "Flight Approved", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Approved.`);
                     await emailAA.sendEmail();
+                } else {
+                    // Send email to finance manager for manual approval
+                    const sendEmail = new Email('no-reply@jlabupch.uk', event.financeMan.email, "Flight Awaiting Approval", `There is a flight awaiting Approvale in the event ${event.name}. Please check the event page for more details.`);
+                    sendEmail.sendEmail();
                 }
+            } else { 
+                // Send email to finance manager for manual approval
+                const sendEmail = new Email('no-reply@jlabupch.uk', event.financeMan.email, "Flight Awaiting Approval", `There is a flight awaiting Approvale in the event ${event.name}. Please check the event page for more details.`);
+                sendEmail.sendEmail();
             }
         } catch (error) {
             log.error("Error at Flight Hold (Auto Approval): ", error);
