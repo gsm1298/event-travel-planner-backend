@@ -4,6 +4,8 @@ import bcrypt from 'bcrypt';
 import speakeasy from 'speakeasy';
 import { logger } from '../service/LogService.mjs';
 import { Email } from '../business/Email.js'; // Import the EmailService
+import ejs, { render } from 'ejs';
+import path from 'path';
 
 // Init child logger instance
 const log = logger.child({
@@ -226,8 +228,30 @@ export class User {
             
                     // Check if user was created successfully
                     if (id > 0) {
-                        const email = new Email('no-reply@jlabupch.uk', user.email, "Account Created", `An account has been created for you.\n\nYour temporary password is: ${user.pass}`);
-                        email.sendEmail();
+                        // Setup the template for the email
+                        const templatePath = path.join(process.cwd(), 'email_templates', 'newUserEmail.ejs');
+
+                        // Prepare data to pass into template
+                        const templateData = { tempPass: user.pass };
+
+                        let htmlContent;
+                        try {
+                            htmlContent = await ejs.renderFile(templatePath, templateData);
+                        } catch (renderErr) {
+                            log.error("Error rendering email template:", renderErr);
+                        }
+
+
+                        // Use generated htmlContent to send email
+                        const sendEmail = new Email(
+                            'no-reply@jlabupch.uk',
+                            user.email,
+                            "Account Created",
+                            null,
+                            htmlContent
+                        );
+
+                        sendEmail.sendEmail();
                     } else {
                         log.error("user could not be created (user import)", { email: user.email });
                     }

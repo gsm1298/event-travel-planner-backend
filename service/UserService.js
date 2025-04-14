@@ -8,6 +8,7 @@ import path from 'path';
 import jwt from 'jsonwebtoken';
 import { Email } from '../business/Email.js';
 import { Organization } from "../business/Organization.js";
+import ejs, { render } from 'ejs';
 
 dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
 
@@ -89,7 +90,29 @@ export class UserService {
             // Save user to the database
             await newUser.save();
 
-            const sendEmail = new Email('no-reply@jlabupch.uk', newUser.email, "Account Created", `There has been an account created for you.\n\n Your temporary password is: ${newUser.pass}`);
+            // Setup the template for the email
+            const templatePath = path.join(process.cwd(), 'email_templates', 'newUserEmail.ejs');
+            
+            // Prepare data to pass into template
+            const templateData = { tempPass: newUser.pass };
+
+            let htmlContent;
+            try {
+                htmlContent = await ejs.renderFile(templatePath, templateData);
+            } catch (renderErr) {
+                log.error("Error rendering email template:", renderErr);
+            }
+            
+                
+            // Use generated htmlContent to send email
+            const sendEmail = new Email(
+                'no-reply@jlabupch.uk',
+                newUser.email,
+                "Account Created",
+                null,
+                htmlContent
+            );
+            
             sendEmail.sendEmail();
 
             log.verbose("new user created", { userId: newUser.id, email: newUser.email });
