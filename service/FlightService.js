@@ -291,7 +291,7 @@ export class FlightService {
             data.slices.forEach((s) => slices.push(Util.parseSlice(s)));
 
             const dbItinerary = {
-              price: input.flight.price,
+              price: data.totalPrice,
               airline: data.airline,
               logoURL: data.airlineLogo,
               offer_id: data.offer_id,
