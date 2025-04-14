@@ -3,6 +3,8 @@ import { User } from '../business/User.js';
 import { EventDB } from '../data_access/EventDB.js';
 import { Email } from '../business/Email.js';
 import { logger } from '../service/LogService.mjs';
+import ejs, { render } from 'ejs';
+import path from 'path';
 
 // Init child logger instance
 const log = logger.child({
@@ -130,9 +132,29 @@ export class Event {
 
             attendees.forEach(async attendee => {
                 const user = await User.GetUserById(attendee.id);
-                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
-                log.verbose("attendee invited to event", { email: attendee.email, eventId: this.id });
+
+                // Email template
+                const templatePath = path.join(process.cwd(), 'email_templates', 'attendeeInviteEmail.ejs');
+
+                // Prepare data to pass into template
+                const templateData = { eventName: this.name };
+
+                let htmlContent;
+                try {
+                    htmlContent = await ejs.renderFile(templatePath, templateData);
+                } catch (renderErr) {
+                    log.error("Error rendering email template:", renderErr);
+                }
+
+                // Send email using generated htmlContent
+                const email = new Email('no-reply@jlabupch.uk', user.email,
+                    'Event Invitation', null,
+                    htmlContent
+                );
+
+                // Send the email
                 email.sendEmail();
+                log.verbose("attendee invited to event", { email: attendee.email, eventId: this.id });
             });
         } catch(error) {
             log.error(error);
