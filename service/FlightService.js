@@ -300,7 +300,7 @@ export class FlightService {
             //console.log(JSON.stringify(dbItinerary))
 
             // Insert new hold into DB
-            var newHold = new Flight(null, attendee_id, data.totalPrice, overallDepartureTime, 
+            var newHold = new Flight(null, attendee_id, input.flight.price, overallDepartureTime, 
             overallDepartureAirportCode, overallArrivalTime, overallArrivalAirportCode, { id: 1 }, 
             null, input.flight.seatNumber, null, null, data.id, JSON.stringify(dbItinerary), null);
             const newHoldID = await newHold.save();
