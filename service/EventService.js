@@ -304,7 +304,6 @@ export class EventService {
 
             // Get the event by ID
             const event = await Event.findById(eventId);
-
             // Check if user is an event planner or finance manager to get event history
             if (AuthService.authorizer(req, res, ["Event Planner", "Finance Manager"])) {
                 // Get event history
