@@ -384,6 +384,25 @@ export class FlightService {
             );
 
 
+            // Set up the template for auto approval email
+            const autoApproveTemplatePath = path.join(process.cwd(), 'email_templates', 'flightApprovedEmail.ejs');
+            let htmlAutoApproveContent;
+            try {
+              htmlAutoApproveContent = await ejs.renderFile(autoApproveTemplatePath, templateData);
+            } catch (renderErr) {
+              log.error("Error rendering email template:", renderErr);
+            }
+
+            // Use generated htmlContent to send email
+            const autoApprovalEmail = new Email(
+                'no-reply@jlabupch.uk',
+                user.email,
+                "Flight Approved",
+                null,
+                htmlAutoApproveContent
+              );
+
+
             if (event.autoApprove) {
                 // Check if the flight price is within the auto approval threshold
                 const autoApprovalThreshold = event.autoApproveThreshold;
@@ -401,8 +420,7 @@ export class FlightService {
                     // Log and send email to user
                     log.verbose("user flight booking confirmed via auto approval", { email: user.email, confirmationID: confirmation.data.id });
                     // Send email to user
-                    var emailAA = new Email('no-reply@jlabupch.uk', user.email, "Flight Approved", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Approved.`);
-                    await emailAA.sendEmail();
+                    autoApprovalEmail.sendEmail();
                 } else {
                     // Send email to finance manager for manual approval
                     approvalEmail.sendEmail();
@@ -487,21 +505,85 @@ export class FlightService {
                 await event.updateEventHistory(res.locals.user.id, flight.flight_id);
             }
 
+
+            // Setup the template for the email
+            const templatePath = path.join(process.cwd(), 'email_templates', 'flightApprovedEmail.ejs');
+            // Parse the itinerary data from the flight object
+            const data = JSON.parse(flight.itinerary);
+
+            // Prepare data to pass into template
+            const templateData = {
+              user: {
+                firstName: client.firstName
+              },
+              flight: {
+                depart_loc: flight.depart_loc,
+                depart_time: new Date(flight.depart_time).toLocaleDateString('en-US', {
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true,
+                  timeZoneName: 'short'
+                }),
+                arrive_loc: flight.arrive_loc,
+                arrive_time: new Date(flight.arrive_time).toLocaleDateString('en-US', {
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true,
+                  timeZoneName: 'short'
+                }),
+                price: flight.price,
+                duration: data.itinerary[0].duration.replace('P', '').replace('D', 'd ').replace('T', '').replace('H', 'h ').replace('M', 'm'),
+                airlineLogo: data.logoURL
+              }
+            };
+
+            let htmlContent;
+            try {
+              htmlContent = await ejs.renderFile(templatePath, templateData);
+            } catch (renderErr) {
+              log.error("Error rendering email template:", renderErr);
+            }
+
+            // Use generated htmlContent to send email
+            const approvedEmail = new Email(
+              'no-reply@jlabupch.uk',
+              client.email,
+              "Flight Approved",
+              null,
+              htmlContent
+            );
+
+            // Setup the temeplate for denued email
+            let htmlDeniedContent;
+            const deniedTemplatePath = path.join(process.cwd(), 'email_templates', 'flightDeniedEmail.ejs');
+            try {
+              htmlDeniedContent = await ejs.renderFile(deniedTemplatePath, templateData);
+            } catch (renderErr) {
+              log.error("Error rendering email template:", renderErr);
+            }
+
+            // Use generated htmlContent to send email
+            const deniedEmail = new Email(
+              'no-reply@jlabupch.uk',
+              client.email,
+              "Flight Denied",
+              null,
+              htmlDeniedContent
+            );
+
             // Send email to user based on flight status
             // 2 = Denied, 3 = Approved
             switch (flight.status.id) {
                 case 2:
                     // Send email to user
-                    var email = new Email('no-reply@jlabupch.uk', client.email, "Flight Denied", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Denied.`);
-                    await email.sendEmail();
+                    deniedEmail.sendEmail();
 
                     log.verbose("flight denied", { flightID: flight.flight_id });
                     return res.status(200).json({ success: 'Flight Denied' });
 
                 case 3:
                     // Send email to user
-                    var email = new Email('no-reply@jlabupch.uk', client.email, "Flight Approved", `Your flight from ${flight.depart_loc} to ${flight.arrive_loc} for the Event ${event.name} has been Approved.`);
-                    await email.sendEmail();
+                    approvedEmail.sendEmail();
     
                     log.verbose("flight approved", { flightID: flight.flight_id });
                     return res.status(200).json({ success: 'Flight Approved' });
