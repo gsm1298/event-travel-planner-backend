@@ -8,6 +8,7 @@ import { Email } from '../business/Email.js';
 import Amadeus from 'amadeus';
 import dotenv from 'dotenv';
 import path from 'path';
+import ejs from 'ejs'; // for rendering email templates
 
 // Init child logger instance
 const log = logger.child({
@@ -471,8 +472,32 @@ export class EventService {
 
             if (success && updatedBudget) {
                 // Notify event planner of budget change.
-                const email = new Email('no-reply@jlabupch.uk', event.createdBy.email, "Event Budget Updated", `The budget for ${event.name} has been updated to ${event.maxBudget}.`);
-                email.sendEmail();
+                // Setup the template for the email
+                const templatePath = path.join(process.cwd(), 'email_templates', 'budgetUpdate.ejs');
+
+                // Prepare data to pass into template
+                const templateData = {
+                    eventName: event.name,
+                    maxBudget: event.maxBudget
+                };
+
+                let htmlContent;
+                try {
+                    htmlContent = await ejs.renderFile(templatePath, templateData);
+                } catch (renderErr) {
+                    log.error("Error rendering budget update email template:", renderErr);
+                }
+
+                // Use generated htmlContent to send email
+                const sendEmail = new Email(
+                    'no-reply@jlabupch.uk',
+                    event.createdBy.email,
+                    "Event Budget Updated",
+                    null,
+                    htmlContent
+                );
+
+                sendEmail.sendEmail();
 
             }
 

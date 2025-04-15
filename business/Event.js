@@ -172,9 +172,32 @@ export class Event {
         const db = new EventDB();
         try {
             await db.addAttendeesToEvent(this.id, [attendee]);
-            const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
-            log.verbose("new attendee added", { email: attendee.email });
+            //const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
+            //email.sendEmail();
+
+
+            const templatePath = path.join(process.cwd(), 'email_templates', 'newAttendeeInvite.ejs');
+            const templateData = {
+                attendee: { firstName: attendee.firstName, pass: attendee.pass },
+                eventName: this.name
+            };
+            
+
+            const htmlContent = await ejs.renderFile(templatePath, templateData);
+
+            const email = new Email(
+            'no-reply@jlabupch.uk',
+            attendee.email,
+            'Event Invitation',
+            null,
+            htmlContent
+            );
+
             email.sendEmail();
+
+
+
+            log.verbose("new attendee added", { email: attendee.email });
         } catch(error) {
             log.error(error);
             log.error(Error("Error trying to add new attendee to event"));
