@@ -1,10 +1,24 @@
 import { User } from "../business/User.js";
-import Joi from 'joi';
+import JoiBase from 'joi';
+import JoiDate from '@joi/date';
 import { logger } from '../service/LogService.mjs';
+import { AuthService } from './AuthService.js';
+import dotenv from 'dotenv';
+import path from 'path';
+import jwt from 'jsonwebtoken';
+import { Email } from '../business/Email.js';
+import { Organization } from "../business/Organization.js";
+import ejs, { render } from 'ejs';
+
+dotenv.config({ path: [`${path.dirname('.')}/.env.backend`, `${path.dirname('.')}/../.env`] });
+
+const jwtSecret = process.env.jwtSecret;
+
+const Joi = JoiBase.extend(JoiDate); // Extend Joi with date validation
 
 // Init child logger instance
 const log = logger.child({
-    service : "userService", //specify module where logs are from
+    service: "userService", //specify module where logs are from
 });
 
 export class UserService {
@@ -31,19 +45,17 @@ export class UserService {
     */
     async createUser(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"])) {
+                log.verbose("unauthorized user attempted to create a user", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
 
             // Define Joi schemas
             const schema = Joi.object({
-                firstName: Joi.string().optional(),
-                lastName: Joi.string().optional(),
                 email: Joi.string().email().required(),
-                phoneNum: Joi.string().optional(),
-                gender: Joi.string().valid('m', 'f').optional(),
-                title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
-                dob: Joi.date().optional(),
-                org: Joi.object({ id: Joi.number().integer().required() }).optional(),
-                profilePic: Joi.string().optional(),
-                password: Joi.string().required(),
+                role: Joi.string().valid('Org Admin', 'Attendee', 'Event Planner', 'Finance Manager').required(),
+                org: Joi.number().required(),
             });
 
             // Validate request body
@@ -52,20 +64,60 @@ export class UserService {
                 return res.status(400).json({ error: error.details[0].message });
             }
 
+            // Check if the email already exists
+            const existingUser = await User.GetUserByEmail(req.body.email);
+            if (existingUser) {
+                return res.status(400).json({ error: "Email already in use" });
+            }
+
+            // Check if the organization exists
+            const orgCheck = await Organization.getOrg(req.body.org);
+            if (!orgCheck) {
+                return res.status(400).json({ error: "Organization not found" });
+            }
+
             // Use data from the request body and authenticated user
-            const { firstName, lastName, email, phoneNum, gender, title, profilePic, password, dob, org} = req.body;
+            const { email, role, org } = req.body;
 
             // Create the user
-            const newUser = new User(null, firstName, lastName, email, phoneNum, gender, title, profilePic, org = null, null, password, null, null, dob);
+            const newUser = new User(null, null, null, email, null, null, null, null, {id: org}, role, null, null, null, null);
+            var tempPass = await User.hashPass(newUser.email + Date.now() + Math.random() + newUser.org.id);
+            tempPass = tempPass.substring(0, 12);
+            newUser.pass = tempPass;
+            newUser.hashedPass = await User.hashPass(tempPass);
 
-            if (!org) { newUser.org = res.locals.user.org; } // Default to the org of the user creating the user
 
             // Save user to the database
             await newUser.save();
 
+            // Setup the template for the email
+            const templatePath = path.join(process.cwd(), 'email_templates', 'newUserEmail.ejs');
+            
+            // Prepare data to pass into template
+            const templateData = { tempPass: newUser.pass };
+
+            let htmlContent;
+            try {
+                htmlContent = await ejs.renderFile(templatePath, templateData);
+            } catch (renderErr) {
+                log.error("Error rendering email template:", renderErr);
+            }
+            
+                
+            // Use generated htmlContent to send email
+            const sendEmail = new Email(
+                'no-reply@jlabupch.uk',
+                newUser.email,
+                "Account Created",
+                null,
+                htmlContent
+            );
+            
+            sendEmail.sendEmail();
+
+            log.verbose("new user created", { userId: newUser.id, email: newUser.email });
             // Respond with the created event ID
             res.status(201).json({ message: "User created successfully" });
-            log.verbose("new user created", { userId: newUser.id, email: newUser.email }); //this may error out due to user not having an ID yet as it is unassigned by the DB
         } catch (err) {
             log.error("Error creating user:", err);
             res.status(500).json({ error: "Unable to create user." });
@@ -76,16 +128,22 @@ export class UserService {
     async updateUser(req, res) {
         try {
 
-             // Define Joi schemas
-             const schema = Joi.object({
+            // Check if user is admin or the user themselves
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"]) && res.locals.user.id != req.params.id) {
+                log.verbose("unauthorized user attempted to update a user", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Define Joi schemas
+            const schema = Joi.object({
                 firstName: Joi.string().optional(),
                 lastName: Joi.string().optional(),
                 email: Joi.string().email().optional(),
-                phoneNum: Joi.string().optional(),
+                phoneNum: Joi.string().min(10).max(10).optional(),
                 gender: Joi.string().valid('m', 'f').optional(),
                 title: Joi.string().valid('mr', 'mrs', 'ms', 'miss', 'dr').optional(),
-                dob: Joi.date().optional(),
-                profilePic: Joi.string().optional(),
+                dob: Joi.date().format("YYYY-MM-DD").max('now').min('1900-01-01').optional(),
+                profilePic: Joi.string().allow(null, '').optional(),
                 password: Joi.string().min(6).optional(),
             });
 
@@ -109,16 +167,11 @@ export class UserService {
             // Update User in DB
             const updatedUser = await user.save();
             if (updatedUser) {
-                log.verbose("user updated", { 
-                    userId: userId, 
-                    firstName: firstName, 
-                    lastName: lastName, 
-                    email: email, 
-                    phoneNum:phoneNum, 
-                    gender: gender, 
-                    title: title, 
-                    profilePic: profilePic 
-                });
+                log.verbose("user updated", { userId: userId, email: email });
+
+                // Set new JWT token with updated user info
+                var token = jwt.sign({ id: user.id, email: user.email, role: user.role, org: user.org }, jwtSecret, { expiresIn: '30m' });
+                res.cookie("jwt", token, { httpOnly: false, secure: true, same_site: "none", domain: process.env.domain, maxAge: 1800000 });
                 res.status(200).json({ message: "User updated successfully" });
             }
             else { res.status(500).json({ error: "Unable to update User." }); }
@@ -132,9 +185,24 @@ export class UserService {
     async getUserById(req, res) {
         try {
             const userId = req.params.id;
+
+            // Check if user is admin or the user themselves
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"]) && res.locals.user.id != userId) {
+                log.verbose("unauthorized user attempted to get a user", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const user = await User.GetUserById(userId);
             if (user) {
-                res.status(200).json(user);
+                // Remove some of the fields and create new object to return
+                const returnUser =
+                {
+                    id: user.id, firstName: user.firstName, lastName: user.lastName, email: user.email,
+                    phoneNum: user.phoneNum, gender: user.gender, title: user.title, profilePic: user.profilePic,
+                    role: user.role, org: { id: user.org.id, name: user.org.name }, dob: user.dob
+                };
+
+                res.status(200).json(returnUser);
             } else {
                 res.status(404).json({ message: "User not found" });
             }
@@ -147,6 +215,12 @@ export class UserService {
     /** @type {express.RequestHandler} */
     async getUsers(req, res) {
         try {
+            // Check if user is admin
+            if (!AuthService.authorizer(req, res, ["Site Admin", "Org Admin"])) {
+                log.verbose("unauthorized user attempted to get all users", { userId: res.locals.user.id })
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
             const users = await User.GetAllUsers();
             if (users.length > 0) {
                 res.status(200).json(users);

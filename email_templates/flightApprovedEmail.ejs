@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight on Approved</title>
+</head>
+
+<body
+  style="margin:0; padding:0; background-color:#f5f5f5; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f5; padding:20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" border="0"
+          style="background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="background-color:#4c365d; padding:40px 20px;">
+              <h1 style="color:#ffffff; margin:0; font-size:28px;">Flight Approved</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px 20px; background-color:#FFFFE2; text-align:left;">
+              <p style="font-size:18px; color:#333333; margin:0 0 20px;">Dear <%= user.firstName %>,</p>
+              <p style="font-size:16px; color:#333333; margin:0 0 30px;">
+                Your flight has been Approved. Please review the details of your first flight below:
+              </p>
+              <!-- Flight Details Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="border:2px solid #4c365d; border-radius:8px; background-color:#ffffff; padding:20px; overflow:hidden;">
+                <tr>
+                  <!-- Departure Column -->
+                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
+                    <h2 style="color:#4c365d; margin:0; font-size:20px;">Departure</h2>
+                    <p style="font-size:16px; color:#333333; margin:0;">
+                      <strong>
+                        <%= flight.depart_loc %>
+                      </strong>
+                    </p>
+                    <p style="font-size:14px; color:#666666; margin:3px 0 0;">
+                      <%= flight.depart_time %>
+                    </p>
+                  </td>
+                  <!-- Plane Icon Column with Duration -->
+                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
+                    <span style="font-size:30px; color:#4c365d; line-height:1;">&#9992;</span>
+                    <p style="font-size:14px; color:#333333; margin-top:5px;">
+                      <strong>
+                        <%= flight.duration %>
+                      </strong>
+                    </p>
+                  </td>
+                  <!-- Arrival Column -->
+                  <td width="33%" valign="middle" style="text-align:center; padding:10px;">
+                    <h2 style="color:#4c365d; margin:0; font-size:20px;">Arrival</h2>
+                    <p style="font-size:16px; color:#333333; margin:0;">
+                      <strong>
+                        <%= flight.arrive_loc %>
+                      </strong>
+                    </p>
+                    <p style="font-size:14px; color:#666666; margin:3px 0 0;">
+                      <%= flight.arrive_time %>
+                    </p>
+                  </td>
+                </tr>
+                <!-- Price Row -->
+                <tr>
+                  <td colspan="3" style="padding-top:10px; text-align:center;">
+                    <p style="font-size:16px; color:#333333; margin:0;">
+                      <strong>Price:</strong> $<%= flight.price %>
+                    </p>
+                  </td>
+                </tr>
+                <!-- Airline Information Row -->
+                <tr>
+                  <td colspan="3" style="padding-top:10px; text-align:center;">
+                    <img src="<%= flight.airlineLogo %>" alt="<%= flight.airline %> Logo"
+                      style="max-height:30px; margin-top:5px;">
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:16px; color:#666666; margin:30px 0 0;">Thank you for using our service!</p>
+              <p style="font-size:16px; color:#666666; margin:10px 0 0;">Best regards,</p>
+              <p style="font-size:16px; color:#666666; margin:0;">The Event Travel Planner Team</p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="background-color:#f0f0f0; padding:20px;">
+              <p style="font-size:14px; color:#888888; margin:0;">
+                To see your full flight itinerary please login and view it on the app. If you have any questions, feel free to contact your organization's event planning team.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>

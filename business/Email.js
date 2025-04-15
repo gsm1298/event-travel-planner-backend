@@ -20,12 +20,14 @@ export class Email {
      * @param {String} to - Recipient email address
      * @param {String} subject - Email subject
      * @param {String} text - Email body text
+     * @param {String} html - Email body HTML (optional)
      */
-    constructor(from, to, subject, text) {
+    constructor(from, to, subject, text, html) {
         this.from = from;
         this.to = to;
         this.subject = subject;
         this.text = text;
+        this.html = html;
         
         // Init Nodemailer Transporter
         this.transporter = nodemailer.createTransport({
@@ -48,16 +50,17 @@ export class Email {
             from: this.from,
             to: this.to,
             subject: this.subject,
-            text: this.text
+            text: this.text,
+            ...(this.html && { html: this.html }) //only include HTML if it's provided
         };
 
         try {
             const info = await this.transporter.sendMail(mailOptions);
-            log.log('Email sent: ' + info.response);
+            log.info('Email sent: ' + info.response);
             return info;
         } catch (error) {
             log.error('Error sending email:', error);
-            log.error(new error);
+            log.error(new Error(error));
         }
     }
 }

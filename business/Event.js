@@ -3,6 +3,8 @@ import { User } from '../business/User.js';
 import { EventDB } from '../data_access/EventDB.js';
 import { Email } from '../business/Email.js';
 import { logger } from '../service/LogService.mjs';
+import ejs, { render } from 'ejs';
+import path from 'path';
 
 // Init child logger instance
 const log = logger.child({
@@ -77,39 +79,40 @@ export class Event {
     }
 
     /**
-     * Add attendees to the event
-     * @param {Array} attendees
-     * @returns {Promise<void>}
+     * Check if the event is over
+     * @returns {Boolean} True if the event is over, false otherwise
      * @throws {Error}
      */
-    async addAttendees(attendees) {
-        const db = new EventDB();
-        try {
-            log.verbose("added attendees to event", {attendeesList: attendees.toString, eventId: this.id });
-            await db.addAttendeesToEvent(this.id, attendees);
-
-            attendees.forEach(async attendee => {
-                const user = await User.GetUserById(attendee.id);
-                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
-                await email.sendEmail();
-            });
-        } catch(error) {
-             log.error(error);
-             log.error(Error("Error trying to save event"));
-        } finally { db.close(); }
+    CheckIfEventIsOver() {
+        const today = new Date();
+        const endDate = new Date(this.endDate);
+        return today > endDate;
     }
 
     /**
-     * Update the event budget history
-     * @returns {Promise<void>}
-     * @param {Integer} userId - The user ID of the user who is updating the budget history
+     * Check if the event has started
+     * @returns {Boolean} True if the event has started, false otherwise
      * @throws {Error}
      */
-    async updateBudgetHistory(userId) {
+    CheckIfEventHasStarted() {
+        const today = new Date();
+        const startDate = new Date(this.startDate);
+        return today > startDate;
+    }
+
+    /**
+     * Update the event history
+     * @returns {Promise<void>}
+     * @param {Integer} userId - The user ID of the user who is updating the event history
+     * @param {Integer | null} flightId - The flight ID of the flight being approved (optional)
+     * @returns {Promise<void>}
+     * @throws {Error}
+     */
+    async updateEventHistory(userId, flightId = null) {
         const db = new EventDB();
         try {
-            log.verbose("budget history for event updated", { userId: userId, eventId: this.id });
-            await db.updateEventBudgetHistory(this, userId);
+            log.verbose("history for event updated", { userId: userId, eventId: this.id });
+            await db.updateEventHistory(this, userId, flightId);
         } catch(error) {
             log.error(error);
             log.error(Error("Error trying to update budget history"));
@@ -129,9 +132,29 @@ export class Event {
 
             attendees.forEach(async attendee => {
                 const user = await User.GetUserById(attendee.id);
-                const email = new Email('no-reply@jlabupch.uk', user.email, "Event Invitation", `You have been invited to the event ${this.name}.`);
+
+                // Email template
+                const templatePath = path.join(process.cwd(), 'email_templates', 'attendeeInviteEmail.ejs');
+
+                // Prepare data to pass into template
+                const templateData = { eventName: this.name };
+
+                let htmlContent;
+                try {
+                    htmlContent = await ejs.renderFile(templatePath, templateData);
+                } catch (renderErr) {
+                    log.error("Error rendering email template:", renderErr);
+                }
+
+                // Send email using generated htmlContent
+                const email = new Email('no-reply@jlabupch.uk', user.email,
+                    'Event Invitation', null,
+                    htmlContent
+                );
+
+                // Send the email
+                email.sendEmail();
                 log.verbose("attendee invited to event", { email: attendee.email, eventId: this.id });
-                await email.sendEmail();
             });
         } catch(error) {
             log.error(error);
@@ -149,12 +172,50 @@ export class Event {
         const db = new EventDB();
         try {
             await db.addAttendeesToEvent(this.id, [attendee]);
-            const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
+            //const email = new Email('no-reply@jlabupch.uk', attendee.email, "Event Invitation", `You have been invited to the event ${this.name}. \n\n Your temporary password is: ${attendee.pass}`);
+            //email.sendEmail();
+
+
+            const templatePath = path.join(process.cwd(), 'email_templates', 'newAttendeeInvite.ejs');
+            const templateData = {
+                attendee: { firstName: attendee.firstName, pass: attendee.pass },
+                eventName: this.name
+            };
+            
+
+            const htmlContent = await ejs.renderFile(templatePath, templateData);
+
+            const email = new Email(
+            'no-reply@jlabupch.uk',
+            attendee.email,
+            'Event Invitation',
+            null,
+            htmlContent
+            );
+
+            email.sendEmail();
+
+
+
             log.verbose("new attendee added", { email: attendee.email });
-            await email.sendEmail();
         } catch(error) {
             log.error(error);
             log.error(Error("Error trying to add new attendee to event"));
+        } finally { db.close(); }
+    }
+
+    /**
+     * Get all attendees for the event
+     * @returns {Promise<User[]>} Array of User objects
+     * @throws {Error}
+     */
+    async getAttendees() {
+        const db = new EventDB();
+        try {
+            return db.getAttendeesForEvent(this.id);
+        } catch(error) {
+            log.error(error);
+            log.error(Error("Error trying to get attendees for event"));
         } finally { db.close(); }
     }
 
@@ -225,9 +286,8 @@ export class Event {
         try {
             return await db.getEventHistory(eventId);
         } catch(error) {
-            // TODO - Log error
-            console.error(error);
-            throw new Error("Error trying to get event history");
+            log.error(error);
+            log.error(new Error("Error trying to get event history"));
        } finally {
             db.close();
         }
